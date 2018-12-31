@@ -1,2 +1,2 @@
-let title = document.querySelector(.title);
-title.innerHTML += "!!!";
+let title = document.querySelector(".title");
+title.textContent += "!!!";
