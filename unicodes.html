@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8"/>
+<title></title> 
+
+<style>
+</style>
+</head>
+
+<body>
+
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr);" >
+    <div>
+      <br><br>
+      Type in Unicode characters:<br>
+      <textarea id="charinput" cols="40" rows="1"></textarea><br>
+      Corresponding js coding:
+      <div id="unicodeout"></div>
+    
+      <br><br>
+      Type in js codes:<br>
+      <textarea id="unicodein" cols="40" rows="1"></textarea>
+      <br>
+      Resulting string:<br>
+      <textarea id="charout" cols="40" rows="1" readonly></textarea>
+      <textarea id="magnify" cols="2" rows="1" style="width:250px;height:250px;font-size:150px;" readonly></textarea>
+    </div>
+   
+    <div>
+      <input id="start" type="text" placeholder="hex value of listing start">
+      <textarea id="list" cols="80" rows="25" readonly></textarea><br>
+    </div>
+  </div>
+ 
+  <script>
+    const charInput = document.getElementById('charinput');
+    const unicodeOut = document.getElementById('unicodeout');
+    const unicodeIn = document.getElementById('unicodein');
+    const charOut = document.getElementById('charout');
+    const magnify = document.getElementById('magnify');
+    const start = document.getElementById('start');
+    const list = document.getElementById('list');
+    
+    function fixedCharCodeAt(str, idx) {
+    // ex. fixedCharCodeAt('\uD800\uDC00', 0); // 65536
+    // ex. fixedCharCodeAt('\uD800\uDC00', 1); // false
+      idx = idx || 0;
+      var code = str.charCodeAt(idx);
+      var hi, low;
+  
+      // High surrogate (could change last hex to 0xDB7F
+      // to treat high private surrogates 
+      // as single characters)
+      if (0xD800 <= code && code <= 0xDBFF) {
+        hi = code;
+        low = str.charCodeAt(idx + 1);
+        if (isNaN(low)) {
+          throw 'High surrogate not followed by ' +
+            'low surrogate in fixedCharCodeAt()';
+        }
+        return ((hi - 0xD800) * 0x400) +
+          (low - 0xDC00) + 0x10000;
+      }
+      if (0xDC00 <= code && code <= 0xDFFF) { // Low surrogate
+        // We return false to allow loops to skip
+        // this iteration since should have already handled
+        // high surrogate above in the previous iteration
+        return false;
+        // hi = str.charCodeAt(idx - 1);
+        // low = code;
+        // return ((hi - 0xD800) * 0x400) +
+        //   (low - 0xDC00) + 0x10000;
+      }
+      return code;
+    }
+    
+    function uniDecode(str){
+      return str.split('').map((_,i) => {
+        const decimal = fixedCharCodeAt(str,i);
+        const hexa = Number(decimal).toString(16);
+        return hexa!=0?`\\u{${hexa}}`:'';
+        }).join('');
+    }
+    
+    charInput.addEventListener('input', ()=> {
+      unicodeOut.innerHTML = uniDecode(charInput.value);
+    });
+    
+    unicodeIn.addEventListener('input', ()=> {
+      charOut.value = eval("'"+unicodeIn.value+"'");
+      magnify.value = eval("'"+unicodeIn.value+"'");
+    });
+    
+    start.addEventListener('input', ()=> {
+      const dec = parseInt(start.value, 16);
+      list.value = eval("'" + Array.from({length:2000}, (_,i) => '\\u{' + Number(dec+i).toString(16) + '}').join(' ') + "'");
+    });
+  </script>
+  
+</body>
+</html>
