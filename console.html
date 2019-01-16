@@ -3,7 +3,7 @@
 
 <head>
 <meta charset="utf-8"/>
-<title>Console traces</title> 
+<title></title> 
 
 <style>
 </style>
@@ -12,26 +12,224 @@
 <body>
   <div style="display: grid; grid-template-columns: repeat(2, 1fr);" >
     <div id="console" ></div>
-    <textarea id="editor" cols="40" rows="25" oninput="update()"></textarea>
+    <div id="editor" oninput="update()" style="width:600px;height:600px;border-style:solid;border-width:1px;" contenteditable="true"></div>
   </div>
+  
+  <script>
+  function w3CodeColor(elmnt) {
+  var elmntObj = (document.getElementById(elmnt) || elmnt);
+  var elmntTxt = elmntObj.innerHTML;
+  var jscolor = "black";
+  var jskeywordcolor = "mediumblue";
+  var jsstringcolor = "brown";
+  var jsnumbercolor = "red";
+  var jspropertycolor = "black";
+  elmntObj.style.fontFamily = "Consolas,'Courier New', monospace";
+  
+  var currentCaretPosition = getCaretPosition(elmnt);
+
+  elmntTxt = elmntTxt.replace(/<[^>]{3,}>/g,'');
+  elmntTxt = jsMode(elmntTxt);
+  elmntObj.innerHTML = elmntTxt
+  
+  function getCaretPosition(el){
+    var caretOffset = 0, sel;
+    if (typeof window.getSelection !== "undefined") {
+      var range = window.getSelection().getRangeAt(0);
+      var selected = range.toString().length;
+      var preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(el);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      caretOffset = preCaretRange.toString().length - selected;
+    }
+    return caretOffset;
+  }
+ 
+  function getAllTextnodes(el){
+    var n, a=[], walk=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null,false);
+    while(n=walk.nextNode()) a.push(n);
+    return a;
+  }
+  function getCaretData(el, position){
+    var node; nodes = getAllTextnodes(el);
+    for(var n = 0; n < nodes.length; n++) {
+      if (position > nodes[n].nodeValue.length && nodes[n+1]) {
+        // remove amount from the position, go to next node
+        position -= nodes[n].nodeValue.length;
+      } else {
+        node = nodes[n];
+        break;
+      }
+    }
+    // you'll need the node and the position (offset) to set the caret
+    return { node: node, position: position };
+  }
+  // assume "component" is DOM element
+  // you may need to modify currentCaretPosition
+  var data = getCaretData(elmnt, currentCaretPosition);
+  // setting the caret with this info  is also standard
+  function setCaretPosition(d){
+    var sel = window.getSelection(),
+    range = document.createRange();
+    range.setStart(d.node, d.position);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  setCaretPosition(data);
+  
+  function commentMode(txt) {
+    return "<span style=color:" + commentcolor + ">" + txt + "</span>";
+  }
+  function jsMode(txt) {
+    var rest = txt, done = "", esc = [], i, cc, tt = "", sfnuttpos, dfnuttpos, compos, comlinepos, keywordpos, numpos, mypos, dotpos, y;
+    for (i = 0; i < rest.length; i++)  {
+      cc = rest.substr(i, 1);
+      if (cc == "\\") {
+        esc.push(rest.substr(i, 2));
+        cc = "W3JSESCAPE";
+        i++;
+      }
+      tt += cc;
+    }
+    rest = tt;
+    y = 1;
+    while (y == 1) {
+      sfnuttpos = getPos(rest, "'", "'", jsStringMode);
+      dfnuttpos = getPos(rest, '"', '"', jsStringMode);
+      compos = getPos(rest, /\/\*/, "*/", commentMode);
+      comlinepos = getPos(rest, /\/\//, "<br>", commentMode);      
+      numpos = getNumPos(rest, jsNumberMode);
+      keywordpos = getKeywordPos("js", rest, jsKeywordMode);
+      dotpos = getDotPos(rest, jsPropertyMode);
+      if (Math.max(numpos[0], sfnuttpos[0], dfnuttpos[0], compos[0], comlinepos[0], keywordpos[0], dotpos[0]) == -1) {break;}
+      mypos = getMinPos(numpos, sfnuttpos, dfnuttpos, compos, comlinepos, keywordpos, dotpos);
+      if (mypos[0] == -1) {break;}
+      if (mypos[0] > -1) {
+        done += rest.substring(0, mypos[0]);
+        done += mypos[2](rest.substring(mypos[0], mypos[1]));
+        rest = rest.substr(mypos[1]);
+      }
+    }
+    rest = done + rest;
+    for (i = 0; i < esc.length; i++) {
+      rest = rest.replace("W3JSESCAPE", esc[i]);
+    }
+    return "<span style=color:" + jscolor + ">" + rest + "</span>";
+  }
+  function jsStringMode(txt) {
+    return "<span style=color:" + jsstringcolor + ">" + txt + "</span>";
+  }
+  function jsKeywordMode(txt) {
+    return "<span style=color:" + jskeywordcolor + ">" + txt + "</span>";
+  }
+  function jsNumberMode(txt) {
+    return "<span style=color:" + jsnumbercolor + ">" + txt + "</span>";
+  }
+  function jsPropertyMode(txt) {
+    return "<span style=color:" + jspropertycolor + ">" + txt + "</span>";
+  }
+  function getDotPos(txt, func) {
+    var x, i, j, s, e, arr = [".","<", " ", ";", "(", "+", ")", "[", "]", ",", "&", ":", "{", "}", "/" ,"-", "*", "|", "%"];
+    s = txt.indexOf(".");
+    if (s > -1) {
+      x = txt.substr(s + 1);
+      for (j = 0; j < x.length; j++) {
+        cc = x[j];
+        for (i = 0; i < arr.length; i++) {
+          if (cc.indexOf(arr[i]) > -1) {
+            e = j;
+            return [s + 1, e + s + 1, func];
+          }
+        }
+      }
+    }
+    return [-1, -1, func];
+  }
+  function getMinPos() {
+    var i, arr = [];
+    for (i = 0; i < arguments.length; i++) {
+      if (arguments[i][0] > -1) {
+        if (arr.length == 0 || arguments[i][0] < arr[0]) {arr = arguments[i];}
+      }
+    }
+    if (arr.length == 0) {arr = arguments[i];}
+    return arr;
+  }
+  function getKeywordPos(typ, txt, func) {
+    var words, i, pos, rpos = -1, rpos2 = -1, patt;
+    if (typ == "js") {
+      words = ["abstract","arguments","boolean","break","byte","case","catch","char","class","const","continue","debugger","default","delete",
+      "do","double","else","enum","eval","export","extends","false","final","finally","float","for","function","goto","if","implements","import",
+      "in","instanceof","int","interface","let","long","NaN","native","new","null","package","private","protected","public","return","short","static",
+      "super","switch","synchronized","this","throw","throws","transient","true","try","typeof","var","void","volatile","while","with","yield"];
+    }
+    for (i = 0; i < words.length; i++) {
+      pos = txt.indexOf(words[i]);
+      if (pos > -1) {
+        patt = /\W/g;
+        if (txt.substr(pos + words[i].length,1).match(patt) && txt.substr(pos - 1,1).match(patt)) {
+          if (pos > -1 && (rpos == -1 || pos < rpos)) {
+            rpos = pos;
+            rpos2 = rpos + words[i].length;
+          }
+        }
+      } 
+    }
+    return [rpos, rpos2, func];
+  }
+  function getPos(txt, start, end, func) {
+    var s, e;
+    s = txt.search(start);
+    e = txt.indexOf(end, s + (end.length));
+    if (e == -1) {e = txt.length;}
+    return [s, e + (end.length), func];
+  }
+  function getNumPos(txt, func) {
+    var arr = ["<br>", " ", ";", "(", "+", ")", "[", "]", ",", "&", ":", "{", "}", "/" ,"-", "*", "|", "%", "="], i, j, c, startpos = 0, endpos, word;
+    for (i = 0; i < txt.length; i++) {
+      for (j = 0; j < arr.length; j++) {
+        c = txt.substr(i, arr[j].length);
+        if (c == arr[j]) {
+          if (c == "-" && (txt.substr(i - 1, 1) == "e" || txt.substr(i - 1, 1) == "E")) {
+            continue;
+          }
+          endpos = i;
+          if (startpos < endpos) {
+            word = txt.substring(startpos, endpos);
+            if (!isNaN(word)) {return [startpos, endpos, func];}
+          }
+          i += arr[j].length;
+          startpos = i;
+          i -= 1;
+          break;
+        }
+      }
+    }  
+    return [-1, -1, func];
+  }  
+}
+  </script>
   
   <script>
   
   const editor = document.getElementById('editor');
 	const console = document.getElementById('console');
 	
+	editor.focus();
+	
   let log = "";
   const trace = x => {
 	  log += '<br>' + JSON.stringify(x);
 	  console.innerHTML = log;
-	  };
+	};
 	
-	function update(){
-	  const code = editor.value.replace(/\n/,'');
-	  if(/trace\([^\)]+\) *; *$/.test(code))
-  	  eval(code);
+  function update(){
+    w3CodeColor(editor);
+    const code = editor.textContent;
+	  if(/trace\([^\)]+\) *; *$/.test(code)) eval(code);
 	}
-
+  
   </script>
   
 </body>
