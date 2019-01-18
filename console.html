@@ -3,234 +3,614 @@
 
 <head>
 <meta charset="utf-8"/>
-<title></title> 
-
+<title>CONSOLE</title> 
 <style>
+#output {
+top: 40px;
+left: 0;
+right: 0;
+bottom: 0;
+width: 90%;
+height:85vh;
+border-style:solid;
+border-width:1px;
+padding: 1em 5%;
+color: #4e4d7c;
+white-space: pre-wrap;
+overflow: scroll;
+padding: 1em 5%;
+font-family : Consolas, 'Courier New', monospace;
+font-weight: 400;
+-webkit-transition: opacity 0.2s;
+-webkit-overflow-scrolling: touch;
+}
+#template {
+display: none;
+}
+.num {
+font-weight: 600;
+color: #444444;
+}
+ [class*=var] {
+ font-weight: 600;
+}
+.clr {
+border-radius: 1px;
+color: white;
+font-weight: 400;
+}
+.str, .str i {
+color: #d10000 !important;
+font-weight: 400 !important;
+}
+.reg, .reg i {
+color: #e97900;
+font-weight: 500;
+}
+.cmnt, .cmnt i {
+color: #8db8aa !important;
+font-weight: 400 !important;
+}
+
 </style>
 </head>
 
 <body>
   <div style="display: grid; grid-template-columns: repeat(2, 1fr);" >
     <div id="console" ></div>
-    <div id="editor" oninput="update()" spellcheck="false" style="width:600px;height:600px;border-style:solid;border-width:1px;" contenteditable="true"></div>
-  </div>
-  
-  <script>
-  function w3CodeColor(elmnt) {
-  var elmntObj = (document.getElementById(elmnt) || elmnt);
-  var elmntTxt = elmntObj.innerHTML;
-  var jscolor = "black";
-  var jskeywordcolor = "mediumblue";
-  var jsstringcolor = "brown";
-  var jsnumbercolor = "red";
-  var jspropertycolor = "black";
-  elmntObj.style.fontFamily = "Consolas,'Courier New', monospace";
-  
-  var currentCaretPosition = getCaretPosition(elmnt);
+    <div id="output" contenteditable="true" spellcheck="false" oninput="compute()"></div>
 
-  elmntTxt = elmntTxt.replace(/<[^>]{3,}>/g,'');
-  elmntTxt = jsMode(elmntTxt);
-  elmntObj.innerHTML = elmntTxt
+    <br><br>
+  </div>
+  <div id="template">
+    <div class="keywords"> 
+abs
+acos
+add
+addRange
+appendChild
+apply
+arguments
+Array
+as
+asin
+assign
+atan
+atan2
+atob
+body
+boolean
+break
+btoa
+case
+catch
+ceil
+charAt
+charCodeAt
+childNodes
+class
+collapse
+concat
+console
+const
+constructor
+continue
+cos
+createElement
+createTextNode
+createTextRange
+createRange
+cssText
+default
+delete
+deleteContents
+Date
+do
+document
+else
+entries
+eval
+every
+exp
+export
+extends
+false
+filter
+finally
+find
+findIndex
+floor
+for
+forEach
+freeze
+from
+fromCharCode
+function
+get
+getElementById
+getElementsByClassName
+getElementsByTagName
+getOwnPropertyNames
+getRangeAt
+getSelection
+getTimezoneOffset
+Global
+has
+hasOwnProperty
+if
+import
+in
+includes
+indexOf
+innerHTML
+insertNode
+instanceof
+isFinite
+isInteger
+isNaN
+join
+JSON
+keys
+lastIndexOf
+length
+let
+log
+map
+match
+Math
+max
+MAX_SAFE_INTEGER
+MAX_VALUE
+min
+MIN_SAFE_INTEGER
+MIN_VALUE
+moveEnd
+moveStart
+moveToElementText
+NEGATIVE_INFINITY
+new
+null
+Number
+nodeType
+Object
+onkeyup
+onload
+onscroll
+parse
+parseFloat
+parseInt
+pop
+POSITIVE_INFINITY
+pow
+push
+querySelector
+random
+RegExp
+removeAllRanges
+reduce
+repeat
+replace
+return
+reverse
+round
+scrollTop
+search
+select
+selection
+selectNodeContents
+selectionStart
+set
+Set
+setStartAfter
+setEnd
+setStart
+shift
+sin
+size
+slice
+some
+sort
+splice
+split
+sqrt
+startsWith
+String
+stringify
+styleSheet
+substr
+substring
+super
+switch
+tan
+test
+this
+throw
+toLowerCase
+toUpperCase
+toString
+trim
+try
+true
+typeof
+undefined
+unshift
+value
+var
+while
+window
+yield
+</div>
+<div class="colortheme"> #936565
+#C48686
+#8E574D
+#BA7D67
+#AD713E
+#C69060
+#99701F
+#B59140
+#9B954B
+#BCB23B 
+#808E42
+#9EB25F 
+#539B53
+#75BC75
+#42845D
+#5EAA7D
+#0F8776 
+#00A99D
+#138591
+#4FA4B2
+#0071BC
+#4DA0CE
+#3062AA
+#6291BF
+#5462B5
+#7696DD
+#5E57B5
+#7D7DD8
+#7A5E99
+#9787AD
+#955AA3
+#AC85B5
+#A05A89
+#B780A8 </div>
+</div>
+
+<script>
   
-  function getCaretPosition(el){
-    var caretOffset = 0, sel;
-    if (typeof window.getSelection !== "undefined") {
-      var range = window.getSelection().getRangeAt(0);
-      var selected = range.toString().length;
-      var preCaretRange = range.cloneRange();
-      preCaretRange.selectNodeContents(el);
-      preCaretRange.setEnd(range.endContainer, range.endOffset);
-      caretOffset = preCaretRange.toString().length - selected;
-    }
-    return caretOffset;
-  }
- 
-  function getAllTextnodes(el){
-    var n, a=[], walk=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null,false);
-    while(n=walk.nextNode()) a.push(n);
-    return a;
-  }
-  function getCaretData(el, position){
-    var node; nodes = getAllTextnodes(el);
-    for(var n = 0; n < nodes.length; n++) {
-      if (position > nodes[n].nodeValue.length && nodes[n+1]) {
-        // remove amount from the position, go to next node
-        position -= nodes[n].nodeValue.length;
-      } else {
-        node = nodes[n];
-        break;
-      }
-    }
-    // you'll need the node and the position (offset) to set the caret
-    return { node: node, position: position };
-  }
-  // assume "component" is DOM element
-  // you may need to modify currentCaretPosition
-  var data = getCaretData(elmnt, currentCaretPosition);
-  // setting the caret with this info  is also standard
-  function setCaretPosition(d){
-    var sel = window.getSelection(),
-    range = document.createRange();
-    range.setStart(d.node, d.position);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-  setCaretPosition(data);
-  
-  function commentMode(txt) {
-    return "<span style=color:" + commentcolor + ">" + txt + "</span>";
-  }
-  function jsMode(txt) {
-    var rest = txt, done = "", esc = [], i, cc, tt = "", sfnuttpos, dfnuttpos, compos, comlinepos, keywordpos, numpos, mypos, dotpos, y;
-    for (i = 0; i < rest.length; i++)  {
-      cc = rest.substr(i, 1);
-      if (cc == "\\") {
-        esc.push(rest.substr(i, 2));
-        cc = "W3JSESCAPE";
-        i++;
-      }
-      tt += cc;
-    }
-    rest = tt;
-    y = 1;
-    while (y == 1) {
-      sfnuttpos = getPos(rest, "'", "'", jsStringMode);
-      dfnuttpos = getPos(rest, '"', '"', jsStringMode);
-      compos = getPos(rest, /\/\*/, "*/", commentMode);
-      comlinepos = getPos(rest, /\/\//, "<br>", commentMode);      
-      numpos = getNumPos(rest, jsNumberMode);
-      keywordpos = getKeywordPos("js", rest, jsKeywordMode);
-      dotpos = getDotPos(rest, jsPropertyMode);
-      if (Math.max(numpos[0], sfnuttpos[0], dfnuttpos[0], compos[0], comlinepos[0], keywordpos[0], dotpos[0]) == -1) {break;}
-      mypos = getMinPos(numpos, sfnuttpos, dfnuttpos, compos, comlinepos, keywordpos, dotpos);
-      if (mypos[0] == -1) {break;}
-      if (mypos[0] > -1) {
-        done += rest.substring(0, mypos[0]);
-        done += mypos[2](rest.substring(mypos[0], mypos[1]));
-        rest = rest.substr(mypos[1]);
-      }
-    }
-    rest = done + rest;
-    for (i = 0; i < esc.length; i++) {
-      rest = rest.replace("W3JSESCAPE", esc[i]);
-    }
-    return "<span style=color:" + jscolor + ">" + rest + "</span>";
-  }
-  function jsStringMode(txt) {
-    return "<span style=color:" + jsstringcolor + ">" + txt + "</span>";
-  }
-  function jsKeywordMode(txt) {
-    return "<span style=color:" + jskeywordcolor + ">" + txt + "</span>";
-  }
-  function jsNumberMode(txt) {
-    return "<span style=color:" + jsnumbercolor + ">" + txt + "</span>";
-  }
-  function jsPropertyMode(txt) {
-    return "<span style=color:" + jspropertycolor + ">" + txt + "</span>";
-  }
-  function getDotPos(txt, func) {
-    var x, i, j, s, e, arr = [".","<", " ", ";", "(", "+", ")", "[", "]", ",", "&", ":", "{", "}", "/" ,"-", "*", "|", "%"];
-    s = txt.indexOf(".");
-    if (s > -1) {
-      x = txt.substr(s + 1);
-      for (j = 0; j < x.length; j++) {
-        cc = x[j];
-        for (i = 0; i < arr.length; i++) {
-          if (cc.indexOf(arr[i]) > -1) {
-            e = j;
-            return [s + 1, e + s + 1, func];
-          }
-        }
-      }
-    }
-    return [-1, -1, func];
-  }
-  function getMinPos() {
-    var i, arr = [];
-    for (i = 0; i < arguments.length; i++) {
-      if (arguments[i][0] > -1) {
-        if (arr.length == 0 || arguments[i][0] < arr[0]) {arr = arguments[i];}
-      }
-    }
-    if (arr.length == 0) {arr = arguments[i];}
-    return arr;
-  }
-  function getKeywordPos(typ, txt, func) {
-    var words, i, pos, rpos = -1, rpos2 = -1, patt;
-    if (typ == "js") {
-      words = ["abstract","arguments","boolean","break","byte","case","catch","char","class","const","continue","debugger","default","delete",
-      "do","double","else","enum","eval","export","extends","false","final","finally","float","for","function","goto","if","implements","import",
-      "in","instanceof","int","interface","let","long","NaN","native","new","null","package","private","protected","public","return","short","static",
-      "super","switch","synchronized","this","throw","throws","transient","true","try","typeof","var","void","volatile","while","with","yield"];
-    }
-    for (i = 0; i < words.length; i++) {
-      pos = txt.indexOf(words[i]);
-      if (pos > -1) {
-        patt = /\W/g;
-        if (txt.substr(pos + words[i].length,1).match(patt) && txt.substr(pos - 1,1).match(patt)) {
-          if (pos > -1 && (rpos == -1 || pos < rpos)) {
-            rpos = pos;
-            rpos2 = rpos + words[i].length;
-          }
-        }
-      } 
-    }
-    return [rpos, rpos2, func];
-  }
-  function getPos(txt, start, end, func) {
-    var s, e;
-    s = txt.search(start);
-    e = txt.indexOf(end, s + (end.length));
-    if (e == -1) {e = txt.length;}
-    return [s, e + (end.length), func];
-  }
-  function getNumPos(txt, func) {
-    var arr = ["<br>", " ", ";", "(", "+", ")", "[", "]", ",", "&", ":", "{", "}", "/" ,"-", "*", "|", "%", "="], i, j, c, startpos = 0, endpos, word;
-    for (i = 0; i < txt.length; i++) {
-      for (j = 0; j < arr.length; j++) {
-        c = txt.substr(i, arr[j].length);
-        if (c == arr[j]) {
-          if (c == "-" && (txt.substr(i - 1, 1) == "e" || txt.substr(i - 1, 1) == "E")) {
-            continue;
-          }
-          endpos = i;
-          if (startpos < endpos) {
-            word = txt.substring(startpos, endpos);
-            if (!isNaN(word)) {return [startpos, endpos, func];}
-          }
-          i += arr[j].length;
-          startpos = i;
-          i -= 1;
-          break;
-        }
-      }
-    }  
-    return [-1, -1, func];
-  }  
-}
-  </script>
-  
-  <script>
-  
-  const editor = document.getElementById('editor');
+  const editor = document.getElementById('output');
 	const console = document.getElementById('console');
 	
 	editor.focus();
-	
-  let log = "";
-  const trace = x => {
-	  log += '<br>' + JSON.stringify(x);
-	  console.innerHTML = log;
-	};
-	
-  function update(){
-    w3CodeColor(editor);
+	  
+	function compute(){
     const code = editor.textContent;
-	  if(/trace\([^\)]+\) *; *$/.test(code)) eval(code);
+    console.innerHTML = eval(code);
 	}
+	</script>
+	
+<script>
+window.onload = init;
+
+var $editable
+  , tokens = []
+  , token_colors = {}
+  , refresh_timer
+    // Characters that separate tokens
+  , rx_splitters = /[\s\+\-=\*\(\)\{\}\[\]\.;\|,\!]/g
+  , rx_splitters_string = "([\\s\\+\\-=\\*\\(\\)\\{\\}\\[\\]\\.;\\|,\\!])"
+    // Match comments
+  , rx_comments = /(\/\/(.*))\r?\n|\r/g
+    // Match "strings", 'strings', and /regexes/
+  , rx_strings = /("(.*?)")|('(.*?)')|(\/([^\s]+?)[^\\]\/[a-z]*)/g
+    // Match #hex colors
+  , rx_colors = /(#[0-9a-fA-F]{6})/g
+    // Match numbers
+  , rx_numbers = /([\s\+\-=\*\(\)\{\}\[\]\.;\|,\!]?)([0-9]+\.?[0-9]*)([\s\+\-=\*\(\)\{\}\[\]\.;\|,\!])/g
+    // Match valid characters: letters, numbers, _underscore, $
+    // but don't let first character be a number
+  , rx_allowed =  /(^[a-zA-Z_\$][a-zA-Z0-9_\$]*)/
+  ;
+
+
+// ==============================
+
+function init() {
+
+  // Get selectors
+  $editable = document.querySelector("#output");
+
+  init_ui();
+  init_theme();
+  init_keywords();
+
+  // Load script into textarea
+  $.get("script.js", function(data){
+    $editable.innerHTML = data;
+    $editable.focus();
+    update();
+  });
+}
+
+// ==============================
+
+function update() {
+
+  clearTimeout(refresh_timer);
+  refresh_timer = setTimeout(function(){
+
+    // Insert cursor placeholder
+    insertTextAtCursor("@" + "@");
+
+    // Broken in Firefox!
+    // will use textContent instead of innerText, which doesn't
+    // correctly preserve the whitespace
+    var text = $editable.innerText || $editable.textContent;
+
+    // Find cursor placeholder
+    var pos = text.indexOf("@" + "@");
+    text = text.replace("@" + "@", "");
+
+    // Process text
+    $editable.innerHTML = process(text);
+
+    // Restore cursor position
+    setSelectionRange($editable, pos, pos);
+
+  }, 300);
+}
+
+// ==============================
+
+
+function process(string) {
+  var html = string;
+
+  assign_colors(string);
+
+  var rx_tokens = make_regex(tokens, "g");
+
+
+  html = htmlify(html);
+
+  html = html
+          .replace(rx_strings, replace_rx_strings)
+          .replace(rx_tokens, replace_tokens)
+          .replace(rx_comments, replace_rx_comments)
+          .replace(rx_numbers, replace_rx_numbers)
+          .replace(rx_colors, replace_rx_colors)
+          ;
+
+  return html + "\n";
+}
+
+// ==============================
+
+
+function assign_colors(string) {
+
+  var split = string.split(rx_splitters);
+
+  var old_colors = token_colors;
+  token_colors = get_uniques(split);
+  tokens = Object.keys(token_colors).sort();
+
+  var len = tokens.length;
+
+  for (var i = 0; i < len; i++) {
+
+    var percent = i / len;
+    var index = parseInt( (percent * 132) + (Math.random() * 0) );
+
+    if (index < 0) index = 0;
+    else if (index > 99) index = index - 99;
+    else if (index > 66) index = index - 66;
+    else if (index > 33) index = index - 33;
+
+    var color = "var" + index;
+    token_colors[tokens[i]] = color;
+  }
+}
+
+
+// ==============================
+
+function get_uniques(arr) {
+  var uniques = {};
+  for (var i = arr.length - 1; i >= 0; i--) {
+    if ( arr[i].length > 0
+          && rx_allowed.test(arr[i])
+          && !keywords.test((" " + arr[i] + " "))
+    ) {
+      uniques[ arr[i] ] = true;
+    }
+  };
+  return uniques;
+}
+
+// ==============================
+
+// Make a regex that finds any word in the array between splitter characters
+
+function make_regex(arr, flags) {
+  var str = "(" + arr.join("|").replace(/\$/g,"\\$") + ")";
+  str = rx_splitters_string + str + "(?=" + rx_splitters_string + ")";
+  var regex = new RegExp(str, flags);
+  return regex;
+}
+
+
+// ==============================
+
+
+function replace_rx_comments(match, p1, p2, p3, offset, string) {
+  return "<i class='cmnt'>" + match + "</i>";
+}
+
+function replace_rx_strings(match, p1, p2, p3, offset, string) {
+  var cls;
+  if (match.charAt(0) == "/") cls = "reg";
+  else cls = "str";
+
+  return "<i class='" + cls + "'>" + match + "</i>";
+}
+
+function replace_rx_colors(match, p1, p2, p3, offset, string) {
+  var clr =  "<i class='clr' style='background: ";
+      clr += match + "; box-shadow: 0 0 0 2px " + match + "; ' >";
+      clr += match + "</i>";
+  return clr;
+}
+
+function replace_rx_regexes(match, p1, p2, p3, offset, string) {
+  return "<i class='reg'>" + match + "</i>";
+}
+
+function replace_rx_numbers(match, p1, p2, p3, offset, string) {
+  return p1 + "<i class='num'>" + p2 + "</i>" + p3;
+}
+
+function replace_tokens(match, p1, p2, p3, offset, string) {
+  var colorclass = token_colors[p2];
+  return p1 + "<i class='" + colorclass + "'>" + p2 + "</i>";
+}
+
+// ==============================
+
+function init_theme() {
+  var node = document.querySelector(".colortheme");
+  var colors = node.innerHTML.trim().split("\n");
   
-  </script>
+  var css = "";
+  for (var i = 0; i < colors.length; i++) {
+    css += ".var" + i + "{color:" + colors[i] + ";} ";
+  }
+  add_style_sheet(css);
+}
+
+// ==============================
+
+function init_keywords() {
+  var node = document.querySelector(".keywords");
+  var kw_list = node.innerHTML.trim().split("\n");
+  keywords = make_regex(kw_list,"");
+}
+
+// ==============================
+
+// User Interface
+
+function init_ui() {
+  // Update on key up
+  // throttled this to only a few times a second, replacing html is HEAVY
+  $editable.onkeyup = update;
+}
+
+// ==============================
+
+// DOM Utilities
+
+
+function add_style_sheet (css) {
+  var head, styleElement;
+  head = document.getElementsByTagName('head')[0];
+  styleElement = document.createElement('style');
+  styleElement.setAttribute('type', 'text/css');
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = css;
+  } else {
+    styleElement.appendChild(document.createTextNode(css));
+  }
+  head.appendChild(styleElement);
+  return styleElement;
+}
+
+
+// ==============================
+
+// Utilities
+
+function contains(str, substr) {
+  return str.indexOf(substr) !== -1;
+}
+
+
+function htmlify(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function unquote(str) {
+  return String(str).replace(/"/g, '&quot;');
+}
+
+
+// ==============================
+
+// Text selection management
+
+function insertTextAtCursor(text) { 
+    var sel, range, html; 
+    sel = window.getSelection();
+    range = sel.getRangeAt(0); 
+    range.deleteContents(); 
+    var textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    sel.removeAllRanges();
+    sel.addRange(range);        
+}
+
+function getTextNodesIn(node) {
+    var textNodes = [];
+    if (node.nodeType == 3) {
+        textNodes.push(node);
+    } else {
+        var children = node.childNodes;
+        for (var i = 0, len = children.length; i < len; ++i) {
+            textNodes.push.apply(textNodes, getTextNodesIn(children[i]));
+        }
+    }
+    return textNodes;
+}
+
+function setSelectionRange(el, start, end) {
+    if (document.createRange && window.getSelection) {
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        var textNodes = getTextNodesIn(el);
+        var foundStart = false;
+        var charCount = 0, endCharCount;
+
+        for (var i = 0, textNode; textNode = textNodes[i++]; ) {
+            endCharCount = charCount + textNode.length;
+            if (!foundStart && start >= charCount && (start < endCharCount || (start == endCharCount && i < textNodes.length))) {
+                range.setStart(textNode, start - charCount);
+                foundStart = true;
+            }
+            if (foundStart && end <= endCharCount) {
+                range.setEnd(textNode, end - charCount);
+                break;
+            }
+            charCount = endCharCount;
+        }
+
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    } else if (document.selection && document.body.createTextRange) {
+        var textRange = document.body.createTextRange();
+        textRange.moveToElementText(el);
+        textRange.collapse(true);
+        textRange.moveEnd("character", end);
+        textRange.moveStart("character", start);
+        textRange.select();
+    }
+}
+
+</script>
   
 </body>
 </html>
