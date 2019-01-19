@@ -413,8 +413,8 @@ function assign_colors(string) {
 
   var len = tokens.length;
 
-  const offset = Math.floor(Math.random() * 43);
-  const delta = 1 + Math.floor(Math.random() * 42);
+  const offset = 1; // Math.floor(Math.random() * 43);
+  const delta = 5; //1 + Math.floor(Math.random() * 42);
   
   for (var i = 0; i < len; i++) {
     index = (offset + i * delta) % 43;
