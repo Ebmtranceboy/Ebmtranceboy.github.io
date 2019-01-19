@@ -107,6 +107,7 @@ deleteContents
 Date
 do
 document
+E
 else
 entries
 eval
@@ -154,7 +155,11 @@ keys
 lastIndexOf
 length
 let
+LN10
+LN2
 log
+LOG10E
+LOG2E
 map
 match
 Math
@@ -179,6 +184,7 @@ onscroll
 parse
 parseFloat
 parseInt
+PI
 pop
 POSITIVE_INFINITY
 pow
@@ -213,6 +219,8 @@ sort
 splice
 split
 sqrt
+SQRT1_2
+SQRT2
 startsWith
 String
 stringify
@@ -240,40 +248,51 @@ while
 window
 yield
 </div>
-<div class="colortheme"> #936565
-#C48686
-#8E574D
-#BA7D67
-#AD713E
-#C69060
-#99701F
-#B59140
-#9B954B
-#BCB23B 
-#808E42
-#9EB25F 
-#539B53
-#75BC75
-#42845D
-#5EAA7D
-#0F8776 
-#00A99D
-#138591
-#4FA4B2
-#0071BC
-#4DA0CE
-#3062AA
-#6291BF
-#5462B5
-#7696DD
-#5E57B5
-#7D7DD8
-#7A5E99
-#9787AD
-#955AA3
-#AC85B5
-#A05A89
-#B780A8 </div>
+<div class="colortheme">
+#00007F
+#0000BF
+#0000FF
+#003F7F
+#003FBF
+#007F7F
+#007FBF
+#007FFF
+#3F007F
+#3F00BF
+#3F00FF
+#3F3F7F
+#3F3FBF
+#3F3FFF
+#3F7F7F
+#3F7FBF
+#3F7FFF
+#7F007F
+#7F00BF
+#7F00FF
+#7F3F7F
+#7F3FBF
+#7F3FFF
+#7F7F7F
+#7F7FBF
+#7F7FFF
+#BF007F
+#BF00BF
+#BF00FF
+#BF3F7F
+#BF3FBF
+#BF3FFF
+#BF7F7F
+#BF7FBF
+#BF7FFF
+#FF007F
+#FF00BF
+#FF00FF
+#FF3F7F
+#FF3FBF
+#FF3FFF
+#FF7F7F
+#FF7FBF
+</div>
 </div>
 
 <script>
@@ -302,14 +321,14 @@ var $editable
     // Match comments
   , rx_comments = /(\/\/(.*))\r?\n|\r/g
     // Match "strings", 'strings', and /regexes/
-  , rx_strings = /("(.*?)")|('(.*?)')|(\/([^\s]+?)[^\\]\/[a-z]*)/g
+  , rx_strings = /[^\w\/](("(.*?)")|('(.*?)')|(\/([^\/]+?)\/)[a-z]*)/g
     // Match #hex colors
   , rx_colors = /(#[0-9a-fA-F]{6})/g
     // Match numbers
   , rx_numbers = /([\s\+\-\/%=\*\(\)\{\}\[\]\.;\|,\!]?)([0-9]+\.?[0-9]*)([\s\+\-\/%=\*\(\)\{\}\[\]\.;\|,\!])/g
     // Match valid characters: letters, numbers, _underscore, $
     // but don't let first character be a number
-  , rx_allowed =  /(^[a-zA-Z_\$][a-zA-Z0-9_\$]*)/
+  , rx_allowed =  /(^[a-zA-Z_\$][a-zA-Z0-9_\$]*$)/
   ;
 
 
@@ -370,7 +389,6 @@ function process(string) {
 
   var rx_tokens = make_regex(tokens, "g");
 
-
   html = htmlify(html);
 
   html = html
@@ -390,28 +408,20 @@ function process(string) {
 function assign_colors(string) {
 
   var split = string.split(rx_splitters);
-
-  var old_colors = token_colors;
   token_colors = get_uniques(split);
   tokens = Object.keys(token_colors).sort();
 
   var len = tokens.length;
 
+  const offset = Math.floor(Math.random() * 43);
+  const delta = 1 + Math.floor(Math.random() * 42);
+  
   for (var i = 0; i < len; i++) {
-
-    var percent = i / len;
-    var index = parseInt( (percent * 132) + (Math.random() * 0) );
-
-    if (index < 0) index = 0;
-    else if (index > 99) index = index - 99;
-    else if (index > 66) index = index - 66;
-    else if (index > 33) index = index - 33;
-
+    index = (offset + i * delta) % 43;
     var color = "var" + index;
     token_colors[tokens[i]] = color;
   }
 }
-
 
 // ==============================
 
@@ -449,10 +459,10 @@ function replace_rx_comments(match, p1, p2, p3, offset, string) {
 
 function replace_rx_strings(match, p1, p2, p3, offset, string) {
   var cls;
-  if (match.charAt(0) == "/") cls = "reg";
+  if (match.charAt(1) == "/") cls = "reg";
   else cls = "str";
 
-  return "<i class='" + cls + "'>" + match + "</i>";
+  return match.charAt(0) + "<i class='" + cls + "'>" + p1 + "</i>";
 }
 
 function replace_rx_colors(match, p1, p2, p3, offset, string) {
