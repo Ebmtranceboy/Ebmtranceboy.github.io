@@ -29,14 +29,16 @@ display: none;
 }
 .num {
 font-weight: 600;
-color: #444444;
+color: #2fa08f;
 }
  [class*=var] {
  font-weight: 600;
 }
+ [class*=meth] {
+ font-weight: 500;
+}
 .clr {
 border-radius: 1px;
-color: white;
 font-weight: 400;
 }
 .str, .str i {
@@ -47,9 +49,13 @@ font-weight: 400 !important;
 color: #e97900;
 font-weight: 500;
 }
-.cmnt, .cmnt i {
+.cmnt, .cmnt i, .cmnt span{
 color: #8db8aa !important;
 font-weight: 400 !important;
+}
+.classname, .classname i {
+color: #7fb07f;
+font-weight: 550 ;
 }
 
 </style>
@@ -63,71 +69,58 @@ font-weight: 400 !important;
     <br><br>
   </div>
   <div id="template">
-    <div class="keywords"> 
-abs
+    <div class="classes">Array
+Date
+Document
+Function
+Global
+JSON
+Math
+Number
+Object
+RegExp
+Set
+String</div>
+
+<div class="methods">abs
 acos
 add
 addRange
 appendChild
 apply
-arguments
-Array
-as
 asin
 assign
 atan
 atan2
 atob
 body
-boolean
-break
 btoa
-case
-catch
 ceil
 charAt
 charCodeAt
 childNodes
-class
 collapse
 concat
 console
-const
-constructor
-continue
 cos
 createElement
 createTextNode
 createTextRange
 createRange
 cssText
-default
-delete
 deleteContents
-Date
-do
 document
 E
-else
 entries
-eval
 every
 exp
-export
-extends
-false
 filter
-finally
 find
 findIndex
 floor
-for
-forEach
 freeze
 from
 fromCharCode
-function
-get
 getElementById
 getElementsByClassName
 getElementsByTagName
@@ -135,27 +128,19 @@ getOwnPropertyNames
 getRangeAt
 getSelection
 getTimezoneOffset
-Global
 has
 hasOwnProperty
-if
-import
-in
 includes
 indexOf
-Infinity
 innerHTML
 insertNode
-instanceof
 isFinite
 isInteger
 isNaN
 join
-JSON
 keys
 lastIndexOf
 length
-let
 LN10
 LN2
 log
@@ -163,7 +148,6 @@ LOG10E
 LOG2E
 map
 match
-Math
 max
 MAX_SAFE_INTEGER
 MAX_VALUE
@@ -174,12 +158,8 @@ moveEnd
 moveStart
 moveToElementText
 NEGATIVE_INFINITY
-new
 next
-null
-Number
 nodeType
-Object
 onkeyup
 onload
 onscroll
@@ -193,12 +173,10 @@ pow
 push
 querySelector
 random
-RegExp
 removeAllRanges
 reduce
 repeat
 replace
-return
 reverse
 round
 scrollTop
@@ -207,8 +185,6 @@ select
 selection
 selectNodeContents
 selectionStart
-set
-Set
 setStartAfter
 setEnd
 setStart
@@ -224,34 +200,65 @@ sqrt
 SQRT1_2
 SQRT2
 startsWith
-String
 stringify
 styleSheet
 substr
 substring
-super
-switch
 tan
 test
-this
-throw
 toLowerCase
 toUpperCase
 toString
 trim
+unshift
+value
+window</div>
+
+<div class="keywords">arguments
+as
+boolean
+break
+case
+catch
+class
+const
+constructor
+continue
+default
+delete
+do
+else
+eval
+export
+extends
+false
+finally
+for
+forEach
+function
+get
+if
+import
+in
+Infinity
+instanceof
+let
+new
+null
+return
+set
+super
+switch
+this
+throw
 try
 true
 typeof
 undefined
-unshift
-value
 var
 while
-window
-yield
-</div>
-<div class="colortheme">
-#00007F
+yield</div>
+<div class="colortheme">#00007F
 #0000BF
 #0000FF
 #003F7F
@@ -293,8 +300,7 @@ yield
 #FF3FBF
 #FF3FFF
 #FF7F7F
-#FF7FBF
-</div>
+#FF7FBF</div>
 </div>
 
 <script>
@@ -315,24 +321,26 @@ window.onload = init;
 
 var $editable
   , tokens = []
+  , keywords
+  , classNames
+  , methods
   , token_colors = {}
   , refresh_timer
     // Characters that separate tokens
-  , rx_splitters = /[\s\+\-=\*\(\)\{\}\[\]\.;\|,\!]/g
-  , rx_splitters_string = "([\\s\\+\\-=\\*\\(\\)\\{\\}\\[\\]\\.;\\|,\\!])"
+  , rx_splitters = /[\s\+\-\/%=\*\(\)\{\}\[\]\.;\|,\!]|^/g
+  , rx_splitters_string = "([\\s\\+\\-\\/%=\\*\\(\\)\\{\\}\\[\\]\\.;\\|,\\!]|^)"
     // Match comments
-  , rx_comments = /(\/\/(.*))\r?\n|\r/g
+  , rx_comments = /((\/\/(.*))\r?\n|\r)|(\/\*([^]*?)\*\/)/g
     // Match "strings", 'strings', and /regexes/
-  , rx_strings = /[^\w\/](("(.*?)")|('(.*?)')|(\/([^\/]+?)\/)[a-z]*)/g
+  , rx_strings = /[^\w\/](("(.*?)")|('(.*?)')|(\/([^\*\/][^\/]+?)[^\*\/]\/)[a-z]*)/mg
     // Match #hex colors
-  , rx_colors = /(#[0-9a-fA-F]{6})/g
+  , rx_colors = /(#([0-9a-fA-F]{6}))/g
     // Match numbers
-  , rx_numbers = /([\s\+\-\/%=\*\(\)\{\}\[\]\.;\|,\!]?)([0-9]+\.?[0-9]*)([\s\+\-\/%=\*\(\)\{\}\[\]\.;\|,\!])/g
+  , rx_numbers = /([\s\+\-\/%=\*\(\)\{\}\[\]\.;\|,\!]|^)([0-9]+\.?[0-9]*)(?=[\s\+\-\/%=\*\(\)\{\}\[\]\.;\|,\!])/g
     // Match valid characters: letters, numbers, _underscore, $
     // but don't let first character be a number
   , rx_allowed =  /(^[a-zA-Z_\$][a-zA-Z0-9_\$]*$)/
   ;
-
 
 // ==============================
 
@@ -343,6 +351,8 @@ function init() {
 
   init_ui();
   init_theme();
+  init_classNames();
+  init_methods();
   init_keywords();
 
   // Load script into textarea
@@ -361,7 +371,7 @@ function update() {
   refresh_timer = setTimeout(function(){
 
     // Insert cursor placeholder
-    insertTextAtCursor("@" + "@");
+    insertTextAtCursor("@@");
 
     // Broken in Firefox!
     // will use textContent instead of innerText, which doesn't
@@ -369,8 +379,8 @@ function update() {
     var text = $editable.innerText || $editable.textContent;
 
     // Find cursor placeholder
-    var pos = text.indexOf("@" + "@");
-    text = text.replace("@" + "@", "");
+    var pos = text.indexOf("@@");
+    text = text.replace("@@", "");
 
     // Process text
     $editable.innerHTML = process(text);
@@ -378,11 +388,10 @@ function update() {
     // Restore cursor position
     setSelectionRange($editable, pos, pos);
 
-  }, 300);
+  }, 200);
 }
 
 // ==============================
-
 
 function process(string) {
   var html = string;
@@ -390,13 +399,14 @@ function process(string) {
   assign_colors(string);
 
   var rx_tokens = make_regex(tokens, "g");
-
+  
   html = htmlify(html);
 
   html = html
           .replace(rx_strings, replace_rx_strings)
-          .replace(rx_tokens, replace_tokens)
           .replace(rx_comments, replace_rx_comments)
+          .replace(rx_classes, replace_classes)
+          .replace(rx_tokens, replace_tokens)
           .replace(rx_numbers, replace_rx_numbers)
           .replace(rx_colors, replace_rx_colors)
           ;
@@ -406,7 +416,6 @@ function process(string) {
 
 // ==============================
 
-
 function assign_colors(string) {
 
   var split = string.split(rx_splitters);
@@ -415,12 +424,12 @@ function assign_colors(string) {
 
   var len = tokens.length;
 
-  const offset = 1; // Math.floor(Math.random() * 43);
-  const delta = 5; //1 + Math.floor(Math.random() * 42);
+  const offset = 1;//Math.floor(Math.random() * 43);
+  const delta = 30;// + Math.floor(Math.random() * 42);
   
   for (var i = 0; i < len; i++) {
     index = (offset + i * delta) % 43;
-    var color = "var" + index;
+    var color = (methods.includes(tokens[i]) ? "meth" : "var") + index;
     token_colors[tokens[i]] = color;
   }
 }
@@ -433,6 +442,7 @@ function get_uniques(arr) {
     if ( arr[i].length > 0
           && rx_allowed.test(arr[i])
           && !keywords.test((" " + arr[i] + " "))
+          && !rx_classes.test((" " + arr[i] + " "))
     ) {
       uniques[ arr[i] ] = true;
     }
@@ -451,9 +461,7 @@ function make_regex(arr, flags) {
   return regex;
 }
 
-
 // ==============================
-
 
 function replace_rx_comments(match, p1, p2, p3, offset, string) {
   return "<i class='cmnt'>" + match + "</i>";
@@ -467,9 +475,19 @@ function replace_rx_strings(match, p1, p2, p3, offset, string) {
   return match.charAt(0) + "<i class='" + cls + "'>" + p1 + "</i>";
 }
 
+function invert(color){
+  const inv = x => (128 + parseInt(x,16))%256;
+    
+  let red = inv(color.slice(0,2));
+  let green = inv(color.slice(2,4));
+  let blue = inv(color.slice(4));
+  return `rgba(${red}, ${green}, ${blue}, 1)`;
+}
+
 function replace_rx_colors(match, p1, p2, p3, offset, string) {
   var clr =  "<i class='clr' style='background: ";
-      clr += match + "; box-shadow: 0 0 0 2px " + match + "; ' >";
+      clr += match + "; box-shadow: 0 0 0 2px " + match + "; color:";
+      clr += invert(p2) +"; ' >";
       clr += match + "</i>";
   return clr;
 }
@@ -479,12 +497,18 @@ function replace_rx_regexes(match, p1, p2, p3, offset, string) {
 }
 
 function replace_rx_numbers(match, p1, p2, p3, offset, string) {
-  return p1 + "<i class='num'>" + p2 + "</i>" + p3;
+  return p1 + "<i class='num'>" + p2 + "</i>";
 }
 
 function replace_tokens(match, p1, p2, p3, offset, string) {
   var colorclass = token_colors[p2];
+  if(methods.includes(p2))
+    return p1 + "<span class='" + colorclass + "'>" + p2 + "</span>";
   return p1 + "<i class='" + colorclass + "'>" + p2 + "</i>";
+}
+
+function replace_classes(match, p1, p2, p3, offset, string) {
+  return p1 + "<span class='classname'>" + p2 + "</span>";
 }
 
 // ==============================
@@ -496,6 +520,7 @@ function init_theme() {
   var css = "";
   for (var i = 0; i < colors.length; i++) {
     css += ".var" + i + "{color:" + colors[i] + ";} ";
+    css += ".meth" + i + "{color:" + colors[i] + ";} ";
   }
   add_style_sheet(css);
 }
@@ -506,6 +531,21 @@ function init_keywords() {
   var node = document.querySelector(".keywords");
   var kw_list = node.innerHTML.trim().split("\n");
   keywords = make_regex(kw_list,"");
+}
+
+// ==============================
+
+function init_classNames() {
+  var node = document.querySelector(".classes");
+  classNames = node.innerHTML.trim().split("\n");
+  rx_classes = make_regex(classNames,"g");
+}
+
+// ==============================
+
+function init_methods() {
+  var node = document.querySelector(".methods");
+  methods = node.innerHTML.trim().split("\n");
 }
 
 // ==============================
@@ -522,7 +562,6 @@ function init_ui() {
 
 // DOM Utilities
 
-
 function add_style_sheet (css) {
   var head, styleElement;
   head = document.getElementsByTagName('head')[0];
@@ -537,15 +576,9 @@ function add_style_sheet (css) {
   return styleElement;
 }
 
-
 // ==============================
 
 // Utilities
-
-function contains(str, substr) {
-  return str.indexOf(substr) !== -1;
-}
-
 
 function htmlify(str) {
   return String(str)
@@ -553,11 +586,6 @@ function htmlify(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
-
-function unquote(str) {
-  return String(str).replace(/"/g, '&quot;');
-}
-
 
 // ==============================
 
@@ -598,7 +626,9 @@ function setSelectionRange(el, start, end) {
 
         for (var i = 0, textNode; textNode = textNodes[i++]; ) {
             endCharCount = charCount + textNode.length;
-            if (!foundStart && start >= charCount && (start < endCharCount || (start == endCharCount && i < textNodes.length))) {
+            if (!foundStart && start >= charCount 
+                            && (start < endCharCount || (start == endCharCount 
+                            && i < textNodes.length))) {
                 range.setStart(textNode, start - charCount);
                 foundStart = true;
             }
