@@ -133,6 +133,7 @@ hasOwnProperty
 includes
 indexOf
 innerHTML
+insertBefore
 insertNode
 isFinite
 isInteger
@@ -174,6 +175,7 @@ push
 querySelector
 random
 removeAllRanges
+removeChild
 reduce
 repeat
 replace
@@ -185,6 +187,7 @@ select
 selection
 selectNodeContents
 selectionStart
+setAttribute
 setStartAfter
 setEnd
 setStart
@@ -332,7 +335,7 @@ var $editable
     // Match comments
   , rx_comments = /((\/\/(.*))\r?\n|\r)|(\/\*([^]*?)\*\/)/g
     // Match "strings", 'strings', and /regexes/
-  , rx_strings = /[^\w\/](("(.*?)")|('(.*?)')|(\/([^\*\/][^\/]+?)[^\*\/]\/)[a-z]*)/mg
+  , rx_strings = /([^\w\/]|^\s*)(("(.*?)")|('(.*?)')|(\/([^\*\/][^\/]*)\/)[a-z]*)(\s*\W|$)/mg
     // Match #hex colors
   , rx_colors = /(#([0-9a-fA-F]{6}))/g
     // Match numbers
@@ -354,13 +357,6 @@ function init() {
   init_classNames();
   init_methods();
   init_keywords();
-
-  // Load script into textarea
-  $.get("script.js", function(data){
-    $editable.innerHTML = data;
-    $editable.focus();
-    update();
-  });
 }
 
 // ==============================
@@ -467,12 +463,11 @@ function replace_rx_comments(match, p1, p2, p3, offset, string) {
   return "<i class='cmnt'>" + match + "</i>";
 }
 
-function replace_rx_strings(match, p1, p2, p3, offset, string) {
+function replace_rx_strings(match, p1, p2, p3,p4,p5,p6,p7,p8,p9, offset, string) {
   var cls;
-  if (match.charAt(1) == "/") cls = "reg";
+  if (p2.charAt(0) == "/") cls = "reg";
   else cls = "str";
-
-  return match.charAt(0) + "<i class='" + cls + "'>" + p1 + "</i>";
+  return p1 + "<i class='" + cls + "'>" + p2 + "</i>" + p9;
 }
 
 function invert(color){
@@ -490,10 +485,6 @@ function replace_rx_colors(match, p1, p2, p3, offset, string) {
       clr += invert(p2) +"; ' >";
       clr += match + "</i>";
   return clr;
-}
-
-function replace_rx_regexes(match, p1, p2, p3, offset, string) {
-  return "<i class='reg'>" + match + "</i>";
 }
 
 function replace_rx_numbers(match, p1, p2, p3, offset, string) {
