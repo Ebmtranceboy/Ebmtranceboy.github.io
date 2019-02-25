@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8"/>
+    <link rel="icon" href="./icon.ico">
+
+    <title>Fluid Simulation with WebAssembly!</title> 
+
+    <style>
+      canvas {
+        border: 2px solid green;
+      }
+    </style>
+
+  </head>
+
+  <body>
+
+    <canvas id="canvas"></canvas>
+    <div id="log"></div>
+
+    <script>
+
+      let log = document.querySelector("#log");
+      const dim = 102; 
+      var canvas = document.querySelector("#canvas");
+      canvas.width = canvas.height = dim;
+      var context = canvas.getContext('2d');
+      context.fillStyle = 'black';
+      context.fillRect(0,0,canvas.width,canvas.height);
+      let cpt=0;
+      let exports;
+  
+      const memory = new WebAssembly.Memory({initial: 256, maximum: 256});
+  
+      async function init() {
+        const env = {
+          memory: memory,
+          ___unlock: function() {},
+          ___lock: function() {}
+        };
+
+        const response = await window.fetch('fluid.wasm');
+        const wa = await WebAssembly.instantiateStreaming(response, {env});
+        exports = wa.instance.exports;
+         
+        setInterval((ev) => {
+          exports._fluid_init();
+          exports._fluid_step();
+          draw();
+          
+          cpt++;
+          log.innerHTML = cpt;
+        }, 100);
+      }
+ 
+      function IX(x, y) {
+        return exports._IX(x,y);
+      }
+
+      function getDensityBuffer() {
+        let arr = new Float64Array(memory.buffer, exports._density_ref());
+        //log.innerHTML = ' ' + arr.reduce((a,b)=>Math.min(a,b)) + ' ' + arr.reduce((a,b)=>Math.max(a,b)) ;
+        return arr;
+      } 
+
+      let RGB;
+      function hsv2rgb(h,s,v) {
+        RGB = new Float64Array(memory.buffer, exports._hsv2rgb(h,s,v));
+      }
+     
+      const data = new ImageData(canvas.width, canvas.height);
+      let density, degrees;
+    
+      function draw() {
+        density = getDensityBuffer();
+        
+        let i, j, d, rgb;
+        for (i = 0; i < dim; i++) {
+          for (j = 0; j < dim; j++) {
+            d = density[IX(i, j)];
+            degrees = 360-d/60;
+            hsv2rgb(degrees,1,1);
+            data.data[IX(i,j)*4+0]=d/60*RGB[0];
+            data.data[IX(i,j)*4+1]=255*RGB[1];
+            data.data[IX(i,j)*4+2]=255*RGB[2];
+            data.data[IX(i,j)*4+3]=255;
+          }
+        }
+        context.putImageData(data, 0, 0);
+      }
+  
+    </script>
+    <script> window.addEventListener('load', init); </script>
+  </body>
+</html>
+
+<!--
+ renderV() {
+
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        let x = i * SCALE;
+        let y = j * SCALE;
+        let vx = this.Vx[IX(i, j)];
+        let vy = this.Vy[IX(i, j)];
+        stroke(255);
+
+        if (!(Math.abs(vx) < 0.1 && Math.abs(vy) <= 0.1)) {
+          line(x, y, x+vx*SCALE, y+vy*SCALE );
+        }
+      }
+    }
+  }
+
+  fadeD() {
+    for (let i = 0; i < this.density.length; i++) {
+      let d = density[i];
+      density[i] = constrain(d-0.02, 0, 255);
+    }
+  } 
+  
+-->
