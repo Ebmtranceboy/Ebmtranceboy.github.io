@@ -74,7 +74,7 @@
       let density, degrees;
     
       function draw() {
-        density = getDensityBuffer();
+        if(!density) density = getDensityBuffer();
         
         let i, j, d, rgb;
         for (i = 0; i < dim; i++) {
