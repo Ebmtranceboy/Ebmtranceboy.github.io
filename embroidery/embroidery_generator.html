@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8"/>
+    <title>Embroidery Generator</title> 
+
+    <style>
+    </style>
+  </head>
+
+  <body>
+    
+    <canvas id="canvas"></canvas>
+    <div id="index"></div>
+
+    <script>
+      let n = -1;
+      
+      let a = b = 159;
+      
+      let index = document.querySelector('#index');
+
+      var canvas = document.querySelector('#canvas');
+      canvas.width = 5*a;
+      canvas.height = 3*b;
+      var context = canvas.getContext('2d');
+      
+      let exports;
+  
+      const memory = new WebAssembly.Memory({initial: 256, maximum: 256});
+  
+      async function init() {
+        const env = {
+          memory: memory,
+          ___unlock: function() {},
+          ___lock: function() {},
+        };
+
+        const response = await window.fetch('embroidery.wasm');
+        const wa = await WebAssembly.instantiateStreaming(response, {env});
+        exports = wa.instance.exports;
+        
+        exports._init();
+        display(1);
+      }
+      
+      let run;
+      function getEmbroidery(choice) {
+        let arr = new Uint8Array(memory.buffer, exports._embroidery_step(choice));
+        return arr;
+      } 
+      
+      function display(choice){
+        if(run) exports._embroidery_step(choice); else run = getEmbroidery(choice);
+        
+        var pixels = context.getImageData(0, 0, a, b);
+
+        var data = pixels.data;
+        run.forEach((x,i) => data[i] = x);
+        
+        context.putImageData(pixels, 0, 0);
+        context.putImageData(pixels, a, 0);
+        context.putImageData(pixels, 2*a, 0);
+        context.putImageData(pixels, 3*a, 0);
+        context.putImageData(pixels, 4*a, 0);
+        
+        context.putImageData(pixels, 0, b);
+        context.putImageData(pixels, a, b);
+        context.putImageData(pixels, 2*a, b);
+        context.putImageData(pixels, 3*a, b);
+        context.putImageData(pixels, 4*a, b);
+        
+        context.putImageData(pixels, 0, 2*b);
+        context.putImageData(pixels, a, 2*b);
+        context.putImageData(pixels, 2*a, 2*b);
+        context.putImageData(pixels, 3*a, 2*b);
+        context.putImageData(pixels, 4*a, 2*b);
+      }
+   
+      function keyPressHndl(ev){
+        let choice = ev.keyCode == 38 ? 1 : -1;
+ 
+		    n += choice;
+		    index.innerHTML = n;
+
+        display(choice);
+      }
+      
+      let running = false;
+      let timer = null;
+      function mouseHndl(ev){
+        running = !running;
+        if(running) timer = setInterval(()=>{n++;index.innerHTML=n;display(1)},50);
+        if(!running && timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+     }
+      
+     
+      document.addEventListener('keydown',keyPressHndl);
+      document.addEventListener('mousedown',mouseHndl);
+      
+      
+    </script>
+  
+    <script> window.addEventListener('load', init); </script>
+  </body>
+</html>
