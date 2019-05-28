@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<!-- KaTeX requires the use of the HTML5 doctype. Without it, KaTeX may not render properly -->
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" type="text/css" href="katex/katex.min.css">
+
+    <script src="katex/katex.min.js"></script>
+
+    <!-- To automatically render math in text elements, include the auto-render extension: -->
+    <script defer src="katex/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    
+    <script src="nerdamer/nerdamer.core.js"></script> 
+    <!-- LOAD ADD-ONS -->
+    <script src="nerdamer/Algebra.js"></script>
+    <script src="nerdamer/Calculus.js"></script>
+    <script src="nerdamer/Solve.js"></script>
+    <script src="nerdamer/Extra.js"></script>
+  </head>
+  
+  <body>
+    <div style="position:fixed; top:0; left:0; width:100%;">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr);" >
+        <button onclick="alert(nerdamer.reserved());">Reserved</button>
+        <button onclick="alert(core());">Core</button>
+        <button onclick="alert(examples());">Examples</button>
+        <button id="ButtonMode" onclick="nextMode();">LaTeX</button>
+      </div>
+    </div>
+     <br>
+    <footer>
+      <br><br><br><br><br><br><br><br><br><br>
+    </footer>
+            
+    <script>
+    
+    const modes = ['LaTeX', 'Plain Text', 'Floating', 'Rational'];
+    let mode = 0;
+    let nentry = 1;
+    const footer = document.querySelector('footer');
+    
+    function core(){
+    	return `!nerdamer.setFunction(<name>, <arg-list>, <expression>)
+!nerdamer.setConstant(<name>, <value>)
+!nerdamer.setVar(<name>, <value>)`;
+    }
+    
+    function examples(){
+      return `partfrac((2x-1)/(x^2-x-6),x),
+factor(cos(x)^6+3*b*cos(x)^4+3*a^2*cos(x)^4+3*b^2*cos(x)^2),
+solve(4*x^3-2x+11,x),
+solveEquations([10-x=y-11, x+2y=20]),
+integrate(asin(a*x), x),
+diff(yx*tan(y)*7*tanh(y),x),
+sum(x^2*z^2+x*y-z+1, x, 0, 10),
+gcd(5*x^6+5*x^5+27*x^4+27*x^3+28*x^2+28*x, 5*x^3+7*x),
+div(-x^2*y-y+4*a*x^2+t+4*a+6*b, x^2+1),
+abs(5*x^2)-x+11,
+cos(x)^2+cos(x)+1,
+expand((9*y*x+1)^2),
+cross([a, x, 1],[b, y, 2]),
+dot([a, x, 1],[b, y, 2]),
+imatrix(3),
+determinant(matrix([7,1],[11,2])),
+sqcomp(x^2-10*x+26),
+line([-1,2], [4, 12]),
+invert(matrix([a^2, b], [b^2, 4]))*matrix([3],[4]),
+coeffs(a*x^2+b*x+c,x)`;
+    }
+  
+    function entry(n){
+      let text = document.createElement('textarea');
+      text.setAttribute('id', `input${n}`);
+      text.setAttribute('cols', '80');
+      text.setAttribute('rows', '1');
+      text.setAttribute('spellcheck', 'false');
+      let button = document.createElement('button');
+      button.setAttribute('id', `button${n}`);
+      button.setAttribute('onclick', `process(${n})`);
+      let buttonText = document.createTextNode('Result');
+      button.appendChild(buttonText);
+      let result = document.createElement('div');
+      result.setAttribute('id', `result${n}`);
+      
+      document.body.insertBefore(text,footer);
+      document.body.insertBefore(button,footer);
+      document.body.insertBefore(result,footer);
+    }
+    
+    function process(n) {
+      let input = document.getElementById(`input${n}`);
+      
+      switch(input.value[0]){
+        case '!':
+          eval(input.value.slice(1));
+          document.body.removeChild(document.getElementById(`input${n}`));
+ 	        document.body.removeChild(document.getElementById(`button${n}`));
+ 	        document.body.removeChild(document.getElementById(`result${n}`));
+ 	        entry(n);
+   	    break;
+ 
+       	default:
+       	  objects = [...objects, nerdamer(input.value)];
+	        display(n);
+	        nentry++
+          entry(nentry);
+      }
+    }
+   
+    let objects = [];
+    function display(n){
+      let output = document.getElementById(`result${n}`);
+      
+      switch(mode){
+        case 0: // LaTeX
+          let latex = nerdamer.expressions(true,true)[n];
+    	  katex.render('\\displaystyle{' + latex + '}', output);
+    	  break;
+    	case 1: // Plain text
+    	  output.textContent = nerdamer.expressions(true)[n];
+    	  break;
+    	case 2: // Floating
+    	  output.textContent = convert(objects[n-1].evaluate().text());
+    	  break;
+    	case 3: // Rational
+    	  output.textContent = objects[n-1].evaluate();
+    	  break;
+      }
+    }
+    
+    function nextMode(){
+    	mode = (mode+1)%modes.length;
+    	for(let n=1; n< nentry; n++) display(n);
+    	document.getElementById('ButtonMode').textContent = modes[mode];
+    } 
+    
+    function convert(str){
+      const n = str.length;
+      let i = 0;
+      let words = [];
+      
+      let blob = '';
+      while(i<n){
+        while(i<n && /[^\d\/]/.test(str.charAt(i))){
+          blob += str.charAt(i);
+          i++;
+        }
+        words = [...words, blob];
+        blob = '';
+        while(i<n && /[\d\/]/.test(str.charAt(i))){
+          blob += str.charAt(i);
+          i++;
+        }
+        words = [...words, eval(blob)];
+        blob = '';
+      }
+      return words.join('');
+    }
+    
+    entry(nentry);
+  </script>
+   
+  </body>
+</html>
