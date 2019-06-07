@@ -45,12 +45,12 @@
       
       function mousedownHndl(ev){
         moving = true;
-        markX = ev.pageX;
+        markX = ev.changedTouches[0].pageX;
       }
       function mousemoveHndl(ev){
         if(moving){
           position -= (ev.pageX - markX);
-          markX = ev.pageX;
+          markX = ev.changedTouches[0].pageX;
           while(position < 0) position += img.width;
           while(position >= img.width) position -= img.width;
           display();
