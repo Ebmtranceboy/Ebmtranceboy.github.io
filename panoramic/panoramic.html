@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8"/>
+    <title>Panoramic</title> 
+    <link rel="preload" href="droué.jpg" as="photo" type="image/jpg">
+
+    <style>
+    </style>
+  </head>
+
+  <body>
+  
+    <canvas></canvas>
+    <script>
+      function resize(){
+        canvas.width = window.innerWidth * 0.95;
+        canvas.height = window.innerHeight * 0.95;
+        display();
+      }
+
+      function display(){
+        let ratio = img.height / canvas.height;
+        let width = canvas.width * ratio;
+        
+        if(position + width >= img.width){
+         let otherWidth = (position + width) - img.width;
+          let x = canvas.width - otherWidth / ratio;
+          context.drawImage(img, position, 0, img.width - position, img.height
+                               , 0, 0,  x, canvas.height);
+          context.drawImage(img, 0, 0, otherWidth, img.height
+                               , x, 0,  canvas.width - x, canvas.height);
+
+        }else{
+         
+          context.drawImage(img, position, 0, width, img.height
+                             , 0,        0, canvas.width, canvas.height);
+        
+        }
+      }
+    
+      let moving = false;
+      let position = 0, markX;
+      
+      function mousedownHndl(ev){
+        moving = true;
+        markX = ev.pageX;
+      }
+      function mousemoveHndl(ev){
+        if(moving){
+          position -= (ev.pageX - markX);
+          markX = ev.pageX;
+          while(position < 0) position += img.width;
+          while(position >= img.width) position -= img.width;
+          display();
+        }
+      }
+      function mouseupHndl(){
+        moving = false;
+      }
+      
+      const canvas = document.querySelector('canvas');
+      const context = canvas.getContext('2d');
+        
+      const img = document.createElement('img');
+      img.src = 'droué.jpg';
+   
+      canvas.addEventListener('mousedown', mousedownHndl);
+      canvas.addEventListener('mousemove', mousemoveHndl);
+      canvas.addEventListener('mouseup', mouseupHndl);
+      
+      window.addEventListener('resize', resize);
+      
+      resize();
+      
+    </script>
+  </body>
+</html>
