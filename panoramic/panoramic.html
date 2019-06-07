@@ -66,9 +66,9 @@
       const img = document.createElement('img');
       img.src = 'droué.jpg';
    
-      canvas.addEventListener('mousedown', mousedownHndl);
-      canvas.addEventListener('mousemove', mousemoveHndl);
-      canvas.addEventListener('mouseup', mouseupHndl);
+      canvas.addEventListener('start', mousedownHndl);
+      canvas.addEventListener('drag', mousemoveHndl);
+      canvas.addEventListener('end', mouseupHndl);
       
       window.addEventListener('resize', resize);
       
