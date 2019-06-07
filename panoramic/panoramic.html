@@ -4,7 +4,6 @@
   <head>
     <meta charset="utf-8"/>
     <title>Panoramic</title> 
-    <link rel="preload" href="droué.jpg" as="photo" type="image/jpg">
 
     <style>
     </style>
@@ -12,20 +11,21 @@
 
   <body>
   
-    <canvas></canvas>
+     <img src="./droué.jpg" style="display: none" onload="init()"></img> 
+     <canvas></canvas>
     <script>
       function resize(){
         canvas.width = window.innerWidth * 0.95;
         canvas.height = window.innerHeight * 0.95;
+        ratio = img.height / canvas.height;
+        width = canvas.width * ratio;
         display();
       }
 
       function display(){
-        let ratio = img.height / canvas.height;
-        let width = canvas.width * ratio;
         
         if(position + width >= img.width){
-         let otherWidth = (position + width) - img.width;
+          let otherWidth = (position + width) - img.width;
           let x = canvas.width - otherWidth / ratio;
           context.drawImage(img, position, 0, img.width - position, img.height
                                , 0, 0,  x, canvas.height);
@@ -39,9 +39,17 @@
         
         }
       }
-    
-      let moving = false;
-      let position = 0, markX;
+      
+      let ratio, width;
+      let moving;
+      let position, markX;
+      
+      function init(){
+        position = 0;
+        moving = false;
+   
+        resize();
+      }
       
       function mousedownHndl(ev){
         moving = true;
@@ -63,16 +71,13 @@
       const canvas = document.querySelector('canvas');
       const context = canvas.getContext('2d');
         
-      const img = document.createElement('img');
-      img.src = 'droué.jpg';
-   
+      const img  = document.querySelector('img');
+      
       canvas.addEventListener('touchstart', mousedownHndl);
       canvas.addEventListener('touchmove', mousemoveHndl);
       canvas.addEventListener('touchend', mouseupHndl);
       
       window.addEventListener('resize', resize);
-      
-      resize();
       
     </script>
   </body>
