@@ -68,7 +68,7 @@
           display();
         }
       }
-      function mouseupHndl(){
+      function mouseupHndl(ev){
         dragging = false;
         let diff = position - initialPosition;
         position -= (ev.changedTouches[0].pageX - markX);
