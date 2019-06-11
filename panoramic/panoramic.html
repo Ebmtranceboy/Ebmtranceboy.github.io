@@ -11,7 +11,7 @@
 
   <body>
   
-     <img src="./droué.jpg" style="display: none" onload="init()"></img> 
+     <img src="https://ebmtranceboy.github.io/panoramic/drou%C3%A9.jpg" style="display: none" onload="init()"></img> 
      <canvas></canvas>
     <script>
       function resize(){
@@ -46,17 +46,21 @@
       
       function init(){
         position = 0;
-        moving = false;
+        dragging = false;
    
         resize();
       }
       
       function mousedownHndl(ev){
-        moving = true;
+        stopAnimation();
+        if(timer) clearTimeout(timer);
+        
+        dragging = true;
         markX = ev.changedTouches[0].pageX;
       }
       function mousemoveHndl(ev){
-        if(moving){
+        if(dragging){
+          initialPosition = position;
           position -= (ev.changedTouches[0].pageX - markX);
           markX = ev.changedTouches[0].pageX;
           while(position < 0) position += img.width;
@@ -65,7 +69,13 @@
         }
       }
       function mouseupHndl(){
-        moving = false;
+        dragging = false;
+        let diff = position - initialPosition;
+        position -= (ev.changedTouches[0].pageX - markX);
+        velocity = Math.abs(diff);
+        let direct = diff > 0;
+        master = setInterval(animate(direct), 1);
+        timer = setTimeout(stopAnimation, 10000);
       }
       
       const canvas = document.querySelector('canvas');
@@ -78,6 +88,25 @@
       canvas.addEventListener('touchend', mouseupHndl);
       
       window.addEventListener('resize', resize);
+      
+      let master;
+      let timer;
+      let velocity, initialPosition;
+      
+      function animate(direct){
+        return () => {
+          velocity /= 1.005;
+          if(direct) position += velocity; else position -=velocity;
+          while(position < 0) position += img.width;
+          while(position >= img.width) position -= img.width;
+          display();
+        }
+      }
+      
+      function stopAnimation(){
+        velocity = 0;
+        if(master) clearInterval(master);
+      }
       
     </script>
   </body>
