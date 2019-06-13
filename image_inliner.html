@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8"/>
+    <title>Image Inliner</title> 
+
+    <style>
+    body{background: violet;}
+      #drop_zone {
+        border: 5px solid blue;
+        width:  200px;
+        height: 100px;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div id="drop_zone" ondrop="dropHndl(event);" 
+      ondragover="dragOverHndl(event);">
+      <p>Drag one or more files to this Drop Zone ...</p>
+    </div>
+
+    <p id="title"></p>
+    <img id="image"></img>
+    <br>
+    <textarea id="dataurl" oninput="updateInline();" cols="80" rows="10"></textarea>
+    <br>
+    <div id="output">
+      <output id="type"></output>
+      <output id="size"></output>
+      <output id="dimensions"></output>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    <br>
+    <textarea id="liveurl" cols="80" rows="10"></textarea>
+    
+    <script>
+      let title = document.querySelector('#title');
+      let image = document.querySelector('#image');
+      let dataURL = document.querySelector('#dataurl');
+      var output = document.querySelector('#output');
+      let size = document.querySelector('#size');
+      let dimensions = document.querySelector('#dimensions');
+      let type = document.querySelector('#type');
+
+      let canvas = document.querySelector('#canvas');
+      let liveURL = document.querySelector('#liveurl');
+      canvas.addEventListener('mousedown', updateLive);
+
+      canvas.height = canvas.width = 0;
+      var context = canvas.getContext('2d');
+      
+      function updateLive(ev){
+        
+        let x = ev.pageX - canvas.offsetLeft, y = ev.pageY - canvas.offsetTop;
+  
+        canvas.style.display = 'none';
+    
+        var pixels = context.getImageData(
+          0, 0, canvas.width, canvas.height
+        );
+        var all = pixels.data.length;
+        var data = pixels.data;
+       
+        data[4*(y*canvas.width+x)] = 255;
+        data[4*(y*canvas.width+x)+1] = 0;
+        data[4*(y*canvas.width+x)+2] = 0;
+        data[4*(y*canvas.width+x)+3] = 255;
+
+        context.putImageData(pixels, 0, 0);
+    
+        canvas.style.display = 'inline';  
+      
+       // context.fillStyle = 'red';
+       // context.fillRect(x, y, 1, 1);
+        liveURL.value = canvas.toDataURL(type.textContent);
+      }
+      
+      function updateInline(){
+        let inlineImg = document.querySelector('#inline');
+        if(inlineImg) inlineImg.parentNode.removeChild(inlineImg);
+        inlineImg = document.createElement('img');
+        inlineImg.setAttribute('id','inline');
+        inlineImg.setAttribute('src', dataURL.value);
+        output.appendChild(inlineImg);
+        size.innerHTML = `${dataURL.value.length} bytes`;
+      }
+      
+      function updateCanvas(){
+        canvas.width = image.width;
+        canvas.height = image.height;
+        context.drawImage(image,0,0);
+      }
+      
+      function readerHndl(aImg) { 
+        return function (e) { 
+          aImg.src = e.target.result; 
+          dataURL.value = aImg.src;
+          aImg.addEventListener('load', () => { 
+            dimensions.innerHTML = `${aImg.width}X${aImg.height}`;
+            updateCanvas();
+            }
+          ); 
+          updateInline();
+        }; 
+      }
+  
+      function dropHndl(ev) {
+        // Prevent file from being opened
+        ev.preventDefault();
+
+        if (ev.dataTransfer.items) {
+          for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+            if (ev.dataTransfer.items[i].kind === 'file') {
+              var file = ev.dataTransfer.items[i].getAsFile();
+              title.textContent = `file[${i}].name = ${file.name}`;
+              type.textContent = file.type;
+              if(/image/.test(file.type)){
+                var reader = new FileReader();
+                reader.onload = readerHndl(image);
+                reader.readAsDataURL(file);
+              } 
+            }
+          }
+        } 
+      }
+
+      function dragOverHndl(ev) {
+        // Prevent file from being opened
+        ev.preventDefault();
+      }
+    </script>
+
+  </body>
+</html>
