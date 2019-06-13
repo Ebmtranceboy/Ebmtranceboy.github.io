@@ -72,7 +72,7 @@
         position -= (ev.changedTouches[0].pageX - markX);
         velocity = Math.abs(diff);
         let direct = diff > 0;
-        master = setInterval(animate(direct), 1);
+        master = setInterval(animate(direct), 10);
         timer = setTimeout(stopAnimation, 10000);
       }
       
