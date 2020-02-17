@@ -2,11 +2,12 @@ module Main where
 
 import Prelude
 
+import Data.Array (filter, uncons, (\\))
 import Data.Const (Const)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import SVGpork.Geometry (Circle(..), point)
+import SVGpork.Geometry (Circle(..), length, point, vector)
 import SVGpork.Render (render', defaultContext)
 import Spork.App (App)
 import Spork.App as App
@@ -45,6 +46,8 @@ type Model = { circles :: Array Circle
 initialModel :: Model
 initialModel = {circles: [], rect: Nothing}
 
+radius = 50.0 :: Number
+
 update :: Model → Action → App.Transition Probe Model Action
 update model = case _ of
 
@@ -52,10 +55,16 @@ update model = case _ of
 
   UpdateCircles mouse -> App.purely $
     case model.rect of
-      Just rect ->  model{circles = model.circles
-                                <> [Circle {center: point "" ((toNumber $ clientX mouse) - rect.left)
-                                                         ((toNumber $ clientY mouse) - rect.top)
-                                           , radius: 50.0}]}
+      Just rect ->  let x = (toNumber $ clientX mouse) - rect.left
+                        y = (toNumber $ clientY mouse) - rect.top
+                        p = point "" x y
+                        close (Circle circle) = (length $ vector p circle.center) < radius
+                        toBeRemoved = filter close model.circles
+                    in case uncons toBeRemoved of
+                        Just _ -> model{circles = model.circles \\ toBeRemoved}
+                        _      -> model{circles = model.circles
+                                          <> [Circle { center: p
+                                                     , radius}]}
       _         -> model
 
   SetRect rect ->  App.purely model{rect = Just rect}
