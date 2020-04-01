@@ -2,25 +2,24 @@ module Main where
 
 import Prelude
 
-import Data.Array (zip, length, (..), take, (:), any, concat)
-import Data.Foldable (sum)
-import Data.Array (drop) as Array
+import Data.Array (zip, length, (..))
 import Data.Either (Either(..), hush)
 import Data.Foldable (sum)
-import Data.Int (toNumber)
-import Data.Map (fromFoldable)
+import Data.Map (fromFoldable, empty)
 import Data.Maybe (Maybe(..))
 import Data.String (drop, split, trim, Pattern(..))
 import Effect (Effect)
 import Effect.Console (log)
-import MCMC.Utils (computeMCstats)
-import Mecanism (System, (!!))
+import ML.LinAlg (Matrix, ins, showMatrix, dot, transpose)
 import Parser.Eval (eval)
 import Parser.Parser (parse)
 import Parser.Syntax (Dual(..), Expr(..))
-import Rand (Rand, rands)
-import Math (sqrt, pi, cos, sin)
-import Math (log) as Math
+import Data.Complex.FFT (initialSort, fft, Direction(..))
+import Data.Complex (Cartesian(..))
+import Data.Traversable (traverse_)
+import PRNG ((!!))
+
+type System a = Array a -> Array a
 
 liftExprDual :: Number -> Expr Dual
 liftExprDual x = Lit $ Dual {height: x, slope: 1.0}
@@ -99,48 +98,23 @@ f3 = alteredNumberSystem "x1+1.0, x2+2.0, 3" (deepRename "x2" "x1") :: System Nu
 system3 :: System Number
 system3 = source3 >>> f3 >>> mixer3
 
-chunks :: forall a. Int -> Array a -> Array (Array a)
-chunks n xs = case unit of
-  unit | length xs <= n    -> [xs]
-       | otherwise         -> take n xs : chunks n (Array.drop n xs)
-
-
-uniforms :: Int -> Int -> Number -> Number -> Rand -> Array (Array Number)
-uniforms d n a b r =
-  let f x = a + (b - a) * (toNumber x / 10000.0)
-  in chunks d $ f <$> rands (n*d-1) r
-
-normals :: Int -> Int -> Number -> Number -> Rand -> Array (Array Number)
-normals d n mu sigma rnd =
-  let m = d*n + (d*n) `mod` 2
-      us = uniforms 2 (m `div` 2) 0.00001 1.0 rnd
-    in chunks d $ (\x -> x * sigma + mu) <$> (concat $ (\u ->
-                      let r = sqrt (-2.0 * Math.log (u !! 0))
-                      in [ r * cos (2.0 * pi * (u !! 1))
-                         , r * sin (2.0 * pi * (u !! 1))] ) <$> us )
-
-pop = 2000 :: Int
-dim = 3 :: Int
-
-norm :: Array Number -> Number
-norm xs = sqrt $ sum $ (\x -> x * x) <$> xs
-
-test1 :: String
-test1 = show $ computeMCstats $ (\chunk ->
-                  if any (\x -> x < -1.0 || x > 1.0) chunk
-                    then 0.0
-                    else 1.0) <$> uniforms dim pop (-3.0) 3.0 {val: 3, gen: 14, seed: 159265}
-
-test2 :: String
-test2 = show $ computeMCstats $ (\chunk ->
-                  if norm chunk > 1.0
-                    then 0.0
-                    else 1.0) <$> normals dim pop 0.0 1.0 {val: 3, gen: 14, seed: 159265}
+m1 = {nrows: 3, ncols: 2, content: ins 0 0 1.0 $ ins 1 1 2.0 $ ins 2 1 3.0 empty} :: Matrix
+m2 = {nrows: 3, ncols: 2, content: ins 0 0 4.0 $ ins 1 1 5.0 $ ins 2 1 6.0 empty} :: Matrix
 
 main :: Effect Unit
 main = do
   log $ show $ system1 []
   log $ show $ system2 ["hello"]
   log $ show $ system3 []
-  log test1
-  log test2
+  log $ showMatrix $ dot m1 (transpose m2)
+  log $ showMatrix $ dot m2 (transpose m1)
+  traverse_ (\x -> log $ show x) $ (flip initialSort 3) <$> [0,1,2,3,4,5,6,7]
+  log $ show $ fft [ Cartesian 0.0 0.0
+                   , Cartesian 1.0 0.0
+                   , Cartesian 2.0 0.0
+                   , Cartesian 3.0 0.0
+                   , Cartesian 4.0 0.0
+                   , Cartesian 5.0 0.0
+                   , Cartesian 6.0 0.0
+                   , Cartesian 7.0 0.0
+                   ] 3 Forward

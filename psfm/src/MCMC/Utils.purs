@@ -5,7 +5,7 @@ import Prelude
 import Data.Array (length)
 import Data.Int (toNumber)
 import Math (sqrt)
-import Mecanism ((!!))
+import PRNG ((!!))
 
 type Summary = {expectation :: Number, dispersion :: Number}
 

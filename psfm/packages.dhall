@@ -139,6 +139,23 @@ let additions =
           , version =
               "v1.0.3"
           }
+       , prng-middle-square = 
+          { dependencies =
+             [ "arrays"
+              , "console"
+              , "effect"
+              , "foldable-traversable"
+              , "integers"
+              , "lists"
+              , "psci-support"
+              , "tailrec"
+              ]
+          , repo =
+            "https://github.com/Ebmtranceboy/purescript-prng-middle-square.git"
+          , version = 
+            "v0.1"
+           }
+            
       }
 
 in  upstream // overrides // additions
