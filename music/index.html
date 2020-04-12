@@ -80,10 +80,10 @@
           title="Restart Engine"
         ></i>
         <i
-          id="consoleOutputButton"
+          id="consoleButton"
           class="bar-btn fas fa-scroll"
-          title="Output"
-          onClick="toggleOutput()"
+          title="Console"
+          onClick="toggleConsole()"
           ></i>
       </nav>
       <i
@@ -93,8 +93,13 @@
         title="Open Documentation in new Window"
       ></i>
     </header>
-    <label id="consoleOutput"></label>
-   
+    
+    <div id="console">  
+      <div class='headerTab'>Console</div>
+      <div id='consoleWrapper'>
+        <pre id='consoleOutput'></pre>
+    </div>
+  </div>
 
     <script src="web/csound/CsoundObj.js"></script>
     <script>
@@ -172,16 +177,16 @@
       };
 
       let playing = false;
-      let displayOutput = false;
+      let displayConsole = false;
       
-      function toggleOutput(){
-        if(displayOutput) {
-          consoleOutput.style.visibility="hidden";
-          displayOutput = false;
+      function toggleConsole(){
+        if(displayConsole) {
+          console.style.visibility="hidden";
+          displayConsole = false;
         }
         else {
-          consoleOutput.style.visibility="visible";
-          displayOutput = true;
+          console.style.visibility="visible";
+          displayConsole = true;
         }
       }
       
