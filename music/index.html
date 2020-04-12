@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Music Coding</title>
+    <title>MusiCoding</title>
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta
@@ -125,7 +125,7 @@
       let playPauseButton = document.getElementById("playPauseButton");
       let helpButton = document.getElementById("helpButton");
       let code= document.getElementById("code");
-      let kickOrc = '';
+      let kickOrc='';
       
       const updatePlayPauseUI = () => {
         if (CSOUND_AUDIO_CONTEXT.state == "running") {
@@ -253,8 +253,7 @@
       function restartPerf(){
         restart();
         consoleOutput.innerHTML = "";
-        cs.compileOrc(""+kickOrc+code.value);
-        code.
+        cs.compileOrc(kickOrc+code.value);
       }
 
     </script>
