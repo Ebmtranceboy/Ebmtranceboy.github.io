@@ -107,6 +107,7 @@
       let livecodeOrc = '';
       let console;
       let consoleOutput;
+      let displayConsole = true;
       
       const onRuntimeInitialized = () => {
         fetch("livecode.orc").then(function(response) {
@@ -180,7 +181,6 @@
       };
 
       let playing = false;
-      let displayConsole = false;
       
       function toggleConsole(){
         if(displayConsole) {
