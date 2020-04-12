@@ -108,7 +108,26 @@
       let console;
       let consoleOutput;
       let displayConsole = true;
-      
+      let playPauseButton = document.getElementById("playPauseButton");
+
+      const updatePlayPauseUI = () => {
+        if (CSOUND_AUDIO_CONTEXT.state == "running") {
+          playPauseButton.className = "bar-btn fas fa-pause-circle";
+          playPauseButton.title = "Pause Engine";
+        } else {
+          playPauseButton.className = "bar-btn fas fa-play-circle";
+          playPauseButton.title = "Resume Engine";
+        }
+      };
+
+      const playPause = () => {
+        if (CSOUND_AUDIO_CONTEXT.state == "running") {
+          CSOUND_AUDIO_CONTEXT.suspend().then(updatePlayPauseUI);
+        } else {
+          CSOUND_AUDIO_CONTEXT.resume().then(updatePlayPauseUI);
+        }
+      };
+
       const onRuntimeInitialized = () => {
         fetch("livecode.orc").then(function(response) {
           return response.text().then(function(v) {
@@ -161,6 +180,8 @@
         CsoundObj.importScripts("./web/csound/").then(() => {
           onRuntimeInitialized();
         });
+        
+        playPauseButton.addEventListener("click", playPause);
       }
       
       layoutComplete(); 
