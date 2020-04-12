@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>MusiCoding</title>
+    <title>Music Coding</title>
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta
@@ -111,6 +111,7 @@
       </div>
     </div>
     
+    <label id="debug"></label>
     <textarea  id="code" rows="40" cols="80">
     </textarea>
 
@@ -185,6 +186,8 @@
         fetch("Kick.orc").then(function(response) {
           return response.text().then(function(v) {
             kickOrc = v;
+                    document.getElementById("debug").innerHTML=kickOrc;
+ 
             })
            });
       };
@@ -247,7 +250,8 @@
       function restartPerf(){
         restart();
         consoleOutput.innerHTML = "";
-        cs.compileOrc(kickOrc+code.value);
+        cs.compileOrc(""+kickOrc+code.value);
+        code.
       }
 
     </script>
