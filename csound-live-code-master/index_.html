@@ -106,24 +106,6 @@
     <div id="layoutRoot"></div>
 
     <script src="web/csound/CsoundObj.js"></script>
-    <!--script src="web/cslivecode.js"></script-->
-    <script>
-    
-      let cs = new CsoundObj();
-    const restart = () => {
-      cs.reset();
-      cs.setMessageCallback(csoundMsgCallback);
-      cs.setOption("-m0");
-      cs.setOption("-odac");
-      cs.setOption("-+msg_color=false");
-      cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n");
-      cs.start();
-    };
-
-    restart();
-    
-    cs.compileOrc("instr 1\nasig=vco2(1,440)\nouts asig,asig\nendin\nschedule(1,-1,2)");
-
-    </script>
+    <script src="web/cslivecode.js"></script>
   </body>
 </html>
