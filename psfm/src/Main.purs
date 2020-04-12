@@ -2,22 +2,30 @@ module Main where
 
 import Prelude
 
-import Data.Array (zip, length, (..))
+import Color (rgb, cssStringRGBA)
+import Data.Array (length, mapWithIndex, zip, (..), concat, zipWith)
+import Data.Complex (Cartesian(..))
 import Data.Either (Either(..), hush)
-import Data.Foldable (sum)
+import Data.Foldable (sum, foldr)
+import Data.Int (round, toNumber)
 import Data.Map (fromFoldable, empty)
 import Data.Maybe (Maybe(..))
-import Data.String (drop, split, trim, Pattern(..))
+import Data.Number (infinity)
+import Data.Number.Format (toStringWith, fixed)
+import Data.String (drop, split, trim, Pattern(..), joinWith)
 import Effect (Effect)
-import Effect.Console (log)
-import ML.LinAlg (Matrix, ins, showMatrix, dot, transpose)
+import ML.LinAlg (Matrix, ins)
+import Math (exp, pow)
+import Numeric.Calculus (Signal1D, Signal2D, differentiate, laplacian)
+import PRNG ((!!))
 import Parser.Eval (eval)
 import Parser.Parser (parse)
-import Parser.Syntax (Dual(..), Expr(..))
-import Data.Complex.FFT (initialSort, fft, Direction(..))
-import Data.Complex (Cartesian(..))
-import Data.Traversable (traverse_)
-import PRNG ((!!))
+import Parser.Syntax (Dual(..), Expr(..), tanh)
+import SVGpork.Render (svgline, svgpath)
+import Spork.Html (Html)
+import Spork.Html as H
+import Spork.PureApp (PureApp)
+import Spork.PureApp as PureApp
 
 type System a = Array a -> Array a
 
@@ -101,20 +109,144 @@ system3 = source3 >>> f3 >>> mixer3
 m1 = {nrows: 3, ncols: 2, content: ins 0 0 1.0 $ ins 1 1 2.0 $ ins 2 1 3.0 empty} :: Matrix
 m2 = {nrows: 3, ncols: 2, content: ins 0 0 4.0 $ ins 1 1 5.0 $ ins 2 1 6.0 empty} :: Matrix
 
+class Formatted a where
+  showWithFormat :: Int -> a -> String
+
+instance formattedNumber :: Formatted Number where
+  showWithFormat n x = toStringWith (fixed n) x
+
+instance formattedComplex :: Formatted (Cartesian Number) where
+  showWithFormat n (Cartesian a b) =
+    showWithFormat n a
+    <> (if b<zero then "-" <> showWithFormat n (negate b) else "+" <> showWithFormat n b) <> "i"
+
+instance formattedArray :: Formatted a => Formatted (Array (Array a)) where
+  showWithFormat n xxs =
+    "[" <> joinWith ",\n" ((\xs -> "[" <> joinWith ", " (showWithFormat n <$> xs) <> "]") <$> xxs) <> "]"
+
+type State =
+  { signal :: Signal1D
+  , diff :: Signal1D
+  , diff2 :: Signal1D
+  , sig2D :: Signal2D
+  , diff2D :: Signal2D
+  }
+
+data Action = Iterate
+
+epsilon = 0.001 :: Number
+
+add2D :: Signal2D -> Signal2D -> Signal2D
+add2D {dT, samples: s1} {dT: dT_, samples: s2} = {dT, samples: zipWith (zipWith add) s1 s2}
+
+mul2D :: Signal2D -> Signal2D -> Signal2D
+mul2D  {dT, samples: s1} {dT: dT_, samples: s2} = {dT, samples: zipWith (zipWith mul) s1 s2}
+
+scl2D :: Number -> Signal2D -> Signal2D
+scl2D k  {dT, samples} = {dT, samples: (\xs -> (_* k) <$> xs) <$> samples}
+
+update ∷ State → Action → State
+update s _ = s{sig2D = s.sig2D `add2D` scl2D epsilon (laplacian s.sig2D)}
+
+bar :: OffsetY -> Number -> Number -> Html Action
+bar offsetY x y =
+  let offsetX = 10.0
+      scaleX = 0.50
+      scaleY = 50.0
+  in svgline (offsetX+scaleX*x) (offsetY) (offsetX+scaleX*x) (offsetY-scaleY*y) "#000" 0.2
+
+type OffsetY = Number
+
+plot1D :: OffsetY -> Array Number -> Array (Html Action)
+plot1D off xs =  mapWithIndex (\i x -> bar off (toNumber i) x) xs
+
+charter :: Number -> String
+charter v =
+  let bounded = 255.0 * tanh (v/0.7)
+  in if bounded < 0.0
+    then cssStringRGBA $ rgb (255 - round (-bounded)) (255 - round (-bounded)) 255
+    else cssStringRGBA $ rgb 255 (255 - round bounded) (255 - round bounded)
+
+cell :: Number -> Number -> Number -> Html Action
+cell x y v =
+  let unitX = 5.0
+      unitY = 5.0
+      fill = charter v
+      m a b = "M " <> show (a*unitX) <> " " <> show (b*unitY) <> " "
+      l a b = "L " <> show (a*unitX) <> " " <> show (b*unitY) <> " "
+   in svgpath "#000" 0.0 fill $ m x y <> l (x+unitX) y <> l (x+unitX) (y+unitY) <> l x (y+unitY) <> "Z"
+
+
+plot2D :: Array (Array Number) -> Array (Html Action)
+plot2D xys = concat $ mapWithIndex (\i xs -> mapWithIndex (\j v -> cell (toNumber i) (toNumber j) v) xs) xys
+
+extremums :: Array Number -> {max :: Number, min :: Number}
+extremums xs =
+  { max: foldr max (-infinity) xs
+  , min: foldr min infinity xs
+  }
+
+render ∷ State → Html Action
+render s =
+  H.div []
+  [ H.label [] [H.text $  (show $ extremums s.signal.samples) <> (show $ extremums s.diff.samples)]
+  , H.button [H.onClick $ H.always_ Iterate] [H.text "Iterate"]
+  , H.elemWithNS
+      ns
+      "svg"
+      [ H.attr "width" "1280"
+      , H.attr "height" "768"
+      ]
+      (
+       {-plot1D 100.0 (s.signal.samples)
+       <> plot1D 300.0 (s.diff.samples)
+       <> plot1D 500.0 (s.diff2.samples) -}
+      --plot2D s.sig2D.samples
+      plot2D s.sig2D.samples
+
+      )
+  ]
+    where
+      ns = Just $ H.Namespace "http://www.w3.org/2000/svg"
+
+nSamples = 64 :: Int
+
+gaussian :: Array Number
+gaussian = (\i -> exp (- pow ((toNumber $ i - nSamples `div` 2) / 10.0) 2.0)) <$> (0..(nSamples-1))
+
+sigGaussian = {dT: 0.1, samples: gaussian} :: Signal1D
+
+gaussian2D :: Int -> Int -> Number
+gaussian2D i j = exp (- pow ((toNumber $ i - nSamples `div` 2) / 4.0) 2.0
+                      - pow ((toNumber $ j - nSamples `div` 2) / 4.0) 2.0)
+
+gaussians :: Array (Array Number)
+gaussians = (\i -> (\j -> gaussian2D (i+4) (j-7) + gaussian2D (i-6) (j+5)) <$> (0..(nSamples-1))) <$> (0..(nSamples-1))
+
+sigGaussian2D = {dT: 0.1, samples: gaussians} :: Signal2D
+
+app ∷ PureApp State Action
+app = { update
+      , render
+      , init: { signal: sigGaussian
+              , diff: differentiate 1 sigGaussian
+              , diff2: differentiate 2 sigGaussian
+              , sig2D: sigGaussian2D
+              , diff2D: laplacian sigGaussian2D
+              }
+      }
+
+main ∷ Effect Unit
+main = void $ PureApp.makeWithSelector app "#app"
+
+{-
 main :: Effect Unit
 main = do
   log $ show $ system1 []
   log $ show $ system2 ["hello"]
   log $ show $ system3 []
+
   log $ showMatrix $ dot m1 (transpose m2)
   log $ showMatrix $ dot m2 (transpose m1)
-  traverse_ (\x -> log $ show x) $ (flip initialSort 3) <$> [0,1,2,3,4,5,6,7]
-  log $ show $ fft [ Cartesian 0.0 0.0
-                   , Cartesian 1.0 0.0
-                   , Cartesian 2.0 0.0
-                   , Cartesian 3.0 0.0
-                   , Cartesian 4.0 0.0
-                   , Cartesian 5.0 0.0
-                   , Cartesian 6.0 0.0
-                   , Cartesian 7.0 0.0
-                   ] 3 Forward
+
+-}

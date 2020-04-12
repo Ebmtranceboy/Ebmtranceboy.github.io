@@ -139,7 +139,7 @@ let additions =
           , version =
               "v1.0.3"
           }
-       , prng-middle-square = 
+       , prng-middle-square =
           { dependencies =
              [ "arrays"
               , "console"
@@ -152,10 +152,22 @@ let additions =
               ]
           , repo =
             "https://github.com/Ebmtranceboy/purescript-prng-middle-square.git"
-          , version = 
+          , version =
             "v0.1"
            }
-            
+    , fft =
+         { dependencies =
+            [ "cartesian"
+            , "console"
+            , "effect"
+            , "prng-middle-square"
+            , "strings"
+            ]
+        , repo =
+            "https://github.com/Ebmtranceboy/purescript-fft.git"
+        , version =
+            "v0.2.1"
+       }
       }
 
 in  upstream // overrides // additions
