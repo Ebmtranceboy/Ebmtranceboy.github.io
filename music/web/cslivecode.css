@@ -123,5 +123,6 @@ header > nav > i {
   font-family: "Courier New", Courier, monospace;
   font-size: 0.75em;
   color: white;
-  padding: 12px;
+  padding: 12px; 
+  background: #272822;
 }
