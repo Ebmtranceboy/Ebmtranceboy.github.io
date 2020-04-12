@@ -3,6 +3,8 @@ var filesToCache = [
   "/",
   "/index.html",
   "/orcs/Kick.orc",
+  "/orcs/Snare.orc",
+  "/orcs/Fusion.orc",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",

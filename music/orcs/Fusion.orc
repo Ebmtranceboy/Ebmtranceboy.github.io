@@ -1,8 +1,8 @@
-instr Fusion
-  isaw ftgen 0,0,8192,7,1,2048,-1,0,1,2048,-1,0,1,2048,-1,0,1,2048,-1
-  iwn ftgen 0,0,8192,20,2,1
+gi_fusion_saw ftgen 0,0,8192,7,1,2048,-1,0,1,2048,-1,0,1,2048,-1,0,1,2048,-1
+gi_fusion_wn ftgen 0,0,8192,20,2,1
 
-  ifn ftgen 0,0,8192,-30,isaw,1,(p5+10)*80
+instr Fusion
+  ifn ftgen 0,0,8192,-30,gi_fusion_saw,1,(p5+10)*80
 
   icps = p4  			; perceived frequency 
   iovrlp = 2 + p5 			; 1 + max simultaneous grains
@@ -52,7 +52,7 @@ instr Fusion
     while kgrain < ksize do
       if ksnd[kgrain] < 1 then
         kval table ksnd[kgrain],ifn,1,0
-        kwin table ksnd[kgrain],iwn,1,0
+        kwin table ksnd[kgrain],gi_fusion_wn,1,0
         ksamp += kval*kwin*kgamp
         ksnd[kgrain] = ksnd[kgrain] + 1/sr/kgdur
       endif
