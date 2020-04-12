@@ -59,6 +59,16 @@
       rel="stylesheet"
       href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css"
     />
+    
+    <style>
+    #code {
+      height: 100%;
+      font-family: Monaco, monospace;
+      font-size: 14px;
+    }
+}
+
+    </style>
   </head>
 
   <body>
@@ -100,6 +110,9 @@
         <pre id='consoleOutput'></pre>
       </div>
     </div>
+    
+    <textarea  id="code" rows="40" cols="80">
+    </textarea>
 
     <script src="web/csound/CsoundObj.js"></script>
     <script>
@@ -109,7 +122,9 @@
       let consoleOutput;
       let displayConsole = true;
       let playPauseButton = document.getElementById("playPauseButton");
-
+      let helpButton = document.getElementById("helpButton");
+      let code= document.getElementById("code");
+      
       const updatePlayPauseUI = () => {
         if (CSOUND_AUDIO_CONTEXT.state == "running") {
           playPauseButton.className = "bar-btn fas fa-pause-circle";
@@ -126,6 +141,12 @@
         } else {
           CSOUND_AUDIO_CONTEXT.resume().then(updatePlayPauseUI);
         }
+      };
+      
+      const openHelp = () => {
+        const url =
+          "https://github.com/kunstmusik/csound-live-code/blob/master/doc/intro.md";
+        window.open(url);
       };
 
       const onRuntimeInitialized = () => {
@@ -182,6 +203,7 @@
         });
         
         playPauseButton.addEventListener("click", playPause);
+        helpButton.addEventListener("click", openHelp);
       }
       
       layoutComplete(); 
@@ -216,7 +238,7 @@
       function restartPerf(){
         restart();
         consoleOutput.innerHTML = "";
-        cs.compileOrc("instr 1\nasig=vco2(0.3,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
+        cs.compileOrc(code.textContent);
       }
 
     </script>
