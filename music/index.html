@@ -105,6 +105,7 @@
     <script>
       let cs;
       let livecodeOrc = '';
+      let console;
       let consoleOutput;
       
       const onRuntimeInitialized = () => {
@@ -112,6 +113,7 @@
           return response.text().then(function(v) {
             livecodeOrc = v;
             let ld = document.getElementById("loadDiv");
+            console = document.getElementById("console");
             consoleOutput = document.getElementById("consoleOutput");
 
             const finishLoadCsObj = function() {
@@ -183,6 +185,7 @@
         if(displayConsole) {
           console.style.visibility="hidden";
           displayConsole = false;
+          consoleOutput.innerHTML = "";
         }
         else {
           console.style.visibility="visible";
