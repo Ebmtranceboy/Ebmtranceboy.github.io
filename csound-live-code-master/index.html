@@ -102,11 +102,10 @@
         title="Open Documentation in new Window"
       ></i>
     </header>
-    <!--<div id="csoundCodeEditor"></div>-->
     <div id="layoutRoot"></div>
+    <button onClick="runOrc()">Click</button>
 
     <script src="web/csound/CsoundObj.js"></script>
-    <!--script src="web/cslivecode.js"></script-->
     <script>
       let cs;
       let livecodeOrc = '';
@@ -180,8 +179,9 @@
         cs.start();
       };
 
-       
+       function runOrc(){
       cs.compileOrc("instr 1\nasig=vco2(1,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
+      }
 
     </script>
   </body>
