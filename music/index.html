@@ -180,7 +180,7 @@
           displayOutput = false;
         }
         else {
-          consoleOutput.style.visibility="visble";
+          consoleOutput.style.visibility="visible";
           displayOutput = true;
         }
       }
@@ -191,7 +191,7 @@
         playing = false;
        }
        else{
-        cs.compileOrc("instr 1\nasig=vco2(1,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
+        cs.compileOrc("instr 1\nasig=vco2(0.3,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
         playing = true;
         }
       }
