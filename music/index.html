@@ -72,12 +72,12 @@
           id="playPauseButton"
           class="bar-btn fas fa-pause-circle"
           title="Pause Engine"
-          onClick="runOrc()"
         ></i>
         <i
           id="restartButton"
           class="bar-btn fas fa-redo-alt"
           title="Restart Engine"
+          onClick="restartPerf()"
         ></i>
         <i
           id="consoleButton"
@@ -98,8 +98,8 @@
       <div class='headerTab'>Console</div>
       <div id='consoleWrapper'>
         <pre id='consoleOutput'></pre>
+      </div>
     </div>
-  </div>
 
     <script src="web/csound/CsoundObj.js"></script>
     <script>
@@ -201,13 +201,11 @@
         cs.start();
       };
 
-      let playing = false;
       
       function toggleConsole(){
         if(displayConsole) {
           console.style.visibility="hidden";
           displayConsole = false;
-          consoleOutput.innerHTML = "";
         }
         else {
           console.style.visibility="visible";
@@ -215,15 +213,10 @@
         }
       }
       
-      function runOrc(){
-       if (playing) {
+      function restartPerf(){
         restart();
-        playing = false;
-       }
-       else{
+        consoleOutput.innerHTML = "";
         cs.compileOrc("instr 1\nasig=vco2(0.3,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
-        playing = true;
-        }
       }
 
     </script>
