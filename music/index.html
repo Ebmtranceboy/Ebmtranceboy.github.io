@@ -124,6 +124,7 @@
       let playPauseButton = document.getElementById("playPauseButton");
       let helpButton = document.getElementById("helpButton");
       let code= document.getElementById("code");
+      let kickOrc;
       
       const updatePlayPauseUI = () => {
         if (CSOUND_AUDIO_CONTEXT.state == "running") {
@@ -181,7 +182,7 @@
           });
         });
         
-        fetch("/orcs/Kick.orc").then(function(response) {
+        fetch("Kick.orc").then(function(response) {
           return response.text().then(function(v) {
             kickOrc = v;
             })
