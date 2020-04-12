@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Music Coding</title>
+    <title>MusiCoding</title>
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta
@@ -183,7 +183,7 @@
           });
         });
         
-        fetch("Kick.orc").then(function(response) {
+        fetch("orcs/Kick.orc").then(function(response) {
           return response.text().then(function(v) {
             kickOrc = v;
                     document.getElementById("debug").innerHTML=kickOrc;
