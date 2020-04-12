@@ -2,6 +2,7 @@ var cacheName = "csound-live-code-15";
 var filesToCache = [
   "/",
   "/index.html",
+  "/orcs/Kick.orc",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",

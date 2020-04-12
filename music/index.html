@@ -180,6 +180,12 @@
             }
           });
         });
+        
+        fetch("/orcs/Kick.orc").then(function(response) {
+          return response.text().then(function(v) {
+            kickOrc = v;
+            })
+           });
       };
 
        
@@ -240,7 +246,7 @@
       function restartPerf(){
         restart();
         consoleOutput.innerHTML = "";
-        cs.compileOrc(code.value);
+        cs.compileOrc(kickOrc+code.value);
       }
 
     </script>
