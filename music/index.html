@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Live Coding with Csound</title>
+    <title>Music Coding</title>
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta
@@ -10,16 +10,12 @@
     />
     <meta name="theme-color" content="#000000" />
 
-    <meta property="og:title" content="Live Coding with Csound" />
+    <meta property="og:title" content="Music Coding" />
     <meta
       property="og:description"
-      content="Live code music in WebAssembly-enabled browsers using Csound."
+      content="Musical code in WebAssembly-enabled browsers."
     />
-    <meta
-      property="og:image"
-      content="http://live.csound.com/web/og_image.png"
-    />
-    <meta property="og:url" content="http://live.csound.com" />
+   <meta property="og:url" content="https://ebmtranceboy.github.io/music/index.html" />
 
     <link
       rel="stylesheet"
@@ -72,27 +68,18 @@
       <code>... L O A D I N G &nbsp; C S O U N D ...</code>
     </div>
     <header>
-      <h1>csound-live-code</h1>
+      <h1>music-code</h1>
       <nav>
         <i
           id="playPauseButton"
           class="bar-btn fas fa-pause-circle"
           title="Pause Engine"
+          onClick="runOrc()"
         ></i>
         <i
           id="restartButton"
           class="bar-btn fas fa-redo-alt"
           title="Restart Engine"
-        ></i>
-        <i
-          id="evalNowButton"
-          class="bar-btn fas fa-code"
-          title="Evaluate Now"
-        ></i>
-        <i
-          id="evalMeasureButton"
-          class="bar-btn fas fa-code"
-          title="Evaluate at Measure"
         ></i>
       </nav>
       <i
@@ -103,6 +90,7 @@
       ></i>
     </header>
     <div id="layoutRoot"></div>
+   
     <button onClick="runOrc()">Click</button>
 
     <script src="web/csound/CsoundObj.js"></script>
@@ -179,8 +167,16 @@
         cs.start();
       };
 
+      let playing = false;
        function runOrc(){
-      cs.compileOrc("instr 1\nasig=vco2(1,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
+       if (playing) {
+        restart();
+        playing = false;
+       }
+       else{
+        cs.compileOrc("instr 1\nasig=vco2(1,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
+        playing = true;
+        }
       }
 
     </script>
