@@ -81,6 +81,12 @@
           class="bar-btn fas fa-redo-alt"
           title="Restart Engine"
         ></i>
+        <i
+          id="consoleOutputButton"
+          class="bar-btn fas fa-scroll"
+          title="Output"
+          onClick="toggleOutput()"
+          ></i>
       </nav>
       <i
         id="helpButton"
@@ -89,9 +95,8 @@
         title="Open Documentation in new Window"
       ></i>
     </header>
-    <div id="layoutRoot"></div>
+    <div id="consoleOutput"></div>
    
-    <button onClick="runOrc()">Click</button>
 
     <script src="web/csound/CsoundObj.js"></script>
     <script>
@@ -155,6 +160,7 @@
 
 
       const csoundMsgCallback = msg => {
+        consoleOutput.innerHTML = msg;
       };
 
       const restart = () => {
@@ -168,7 +174,20 @@
       };
 
       let playing = false;
-       function runOrc(){
+      let displayOutput = false;
+      
+      function toggleOutput(){
+        if(displayOutput) {
+          consoleOutput.style.visibility="hidden";
+          displayOutput = false;
+        }
+        else {
+          consoleOutput.style.visibility="visble";
+          displayOutput = true;
+        }
+      }
+      
+      function runOrc(){
        if (playing) {
         restart();
         playing = false;
