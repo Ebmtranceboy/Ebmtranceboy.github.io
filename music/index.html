@@ -226,11 +226,13 @@
       
       function toggleConsole(){
         if(displayConsole) {
-          console.style.visibility="hidden";
+          console.style.display="none";
+          code.style.display="block";
           displayConsole = false;
         }
         else {
-          console.style.visibility="visible";
+          console.style.display="block";
+          code.style.display="none";
           displayConsole = true;
         }
       }
