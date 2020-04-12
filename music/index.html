@@ -115,7 +115,8 @@
             let ld = document.getElementById("loadDiv");
             console = document.getElementById("console");
             consoleOutput = document.getElementById("consoleOutput");
-
+            toggleConsole();
+ 
             const finishLoadCsObj = function() {
               CSOUND_AUDIO_CONTEXT.resume().then(() => {
                 cs = new CsoundObj();
