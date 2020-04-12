@@ -108,21 +108,80 @@
     <script src="web/csound/CsoundObj.js"></script>
     <!--script src="web/cslivecode.js"></script-->
     <script>
-    
-      let cs = new CsoundObj();
-    const restart = () => {
-      cs.reset();
-      cs.setMessageCallback(csoundMsgCallback);
-      cs.setOption("-m0");
-      cs.setOption("-odac");
-      cs.setOption("-+msg_color=false");
-      cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n");
-      cs.start();
-    };
+      let cs;
+      let livecodeOrc = '';
+      let consoleOutput;
+      
+      const onRuntimeInitialized = () => {
+        fetch("livecode.orc").then(function(response) {
+          return response.text().then(function(v) {
+            livecodeOrc = v;
+            let ld = document.getElementById("loadDiv");
+            consoleOutput = document.getElementById("consoleOutput");
 
-    restart();
-    
-    cs.compileOrc("instr 1\nasig=vco2(1,440)\nouts asig,asig\nendin\nschedule(1,-1,2)");
+            const finishLoadCsObj = function() {
+              CSOUND_AUDIO_CONTEXT.resume().then(() => {
+                cs = new CsoundObj();
+                restart();
+
+                if (ld != null) {
+                  ld.remove();
+                }
+ 
+             });
+            };
+
+            if (CSOUND_AUDIO_CONTEXT.state != "running") {
+              ld.innerHTML = "Tap to start Csound";
+              ld.addEventListener("click", function() {
+                finishLoadCsObj();
+              });
+            } else {
+              finishLoadCsObj();
+            }
+          });
+        });
+      };
+
+       
+      function layoutComplete() {
+        // Prevent Refresh
+
+        window.onbeforeunload = function() {
+          return "Are you...sure?";
+        };
+
+        // ServiceWorker for PWA
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("./service-worker.js").then(function() {
+            console.log("Service Worker Registered");
+          });
+        }
+
+        // Initialize Csound and load
+        CsoundObj.importScripts("./web/csound/").then(() => {
+          onRuntimeInitialized();
+        });
+      }
+      
+      layoutComplete(); 
+
+
+      const csoundMsgCallback = msg => {
+      };
+
+      const restart = () => {
+        cs.reset();
+        cs.setMessageCallback(csoundMsgCallback);
+        cs.setOption("-m0");
+        cs.setOption("-odac");
+        cs.setOption("-+msg_color=false");
+        cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n"+livecodeOrc);
+        cs.start();
+      };
+
+       
+      cs.compileOrc("instr 1\nasig=vco2(1,440)\nouts asig,asig\nendin\nschedule(1,0,-1)\n");
 
     </script>
   </body>
