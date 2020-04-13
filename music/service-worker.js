@@ -1,6 +1,5 @@
 var cacheName = "csound-live-code-15";
 
-
 var originalFilesToCache = [
   "/",
   "/index.html",

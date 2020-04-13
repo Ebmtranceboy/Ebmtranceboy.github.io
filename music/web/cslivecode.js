@@ -245,7 +245,7 @@ function layoutComplete() {
     return "Are you...sure?";
   };
   
-  var window.userDefinedOrcFileNames = [  
+  window.userDefinedOrcFileNames = [  
   "Agonoize.orc",
   "AsymFM.orc",
   "BandlimitedSum.orc",
