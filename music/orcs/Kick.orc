@@ -10,5 +10,5 @@ instr Kick
   aleft = arnd_L*arndenv+asine
   aright = arnd_R*arndenv+asine
 
-  out aleft*p4
+  sbus_mix(p5, aleft, aright)
 endin

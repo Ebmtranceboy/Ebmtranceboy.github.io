@@ -60,8 +60,7 @@ instr Enough
       od
 
   aenv linsegr 1,0.2,0
-  aout=aenv*asig/2
+  aout = aenv*asig/2
 
-  ;out aout
-  pan_verb_mix(aout, 0.5, 0.99)
+  sbus_mix(p5, aout, aout)
 endin

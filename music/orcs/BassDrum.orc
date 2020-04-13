@@ -3,9 +3,8 @@ instr BassDrum
   ishape = 0
   imode = -1
 
-
   awet linseg 0.99,0.3,0.5
-  amaster = cpspch(p4)/2
+  amaster = p4
 
   anull init 0
   aphm, ametrom syncphasor amaster, anull
@@ -18,10 +17,6 @@ instr BassDrum
   atri mirror 2*aphm,0,1
   arez = 1-(irez==1?1-aphm:(irez==2?atri:1-aphm+atri/2))*(ahsine+1) ; resonnance waves I,II, or III
 
-  aout = arez
-  al = aout
-  ar = aout
-
   again linsegr 0.3,0.5,0,0.1,0
-  out again*al,again*ar
+  sbus_mix(p5, again*arez, again*arez)
 endin

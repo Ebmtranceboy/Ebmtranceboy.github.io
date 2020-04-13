@@ -2,10 +2,12 @@ gi_fusion_saw ftgen 0,0,8192,7,1,2048,-1,0,1,2048,-1,0,1,2048,-1,0,1,2048,-1
 gi_fusion_wn ftgen 0,0,8192,20,2,1
 
 instr Fusion
-  ifn ftgen 0,0,8192,-30,gi_fusion_saw,1,(p5+10)*80
+  imaj_grains = xchan:i("Fusion.grains", 5)
+  
+  ifn ftgen 0,0,8192,-30,gi_fusion_saw,1,(imaj_grains+10)*80
 
   icps = p4  			; perceived frequency 
-  iovrlp = 2 + p5 			; 1 + max simultaneous grains
+  iovrlp = 2 + imaj_grains 			; 1 + max simultaneous grains
   kgdur expseg 0.03,p3,0.01 		; grain duration
   kgamp expseg 0.9,p3,0.02 		; grain amplitude
 
@@ -62,9 +64,8 @@ instr Fusion
     knsamp += 1
   od
 
-  kfc expseg  ((p5-1)%8+1)*1000,p3, ((p5+1-1)%8+1)*1000
-  krez expseg p5/20,p3,(p5+1)/20
+  kfc expseg  ((imaj_grains-1)%8+1)*1000,p3, ((imaj_grains+1-1)%8+1)*1000
+  krez expseg imaj_grains/20,p3,(imaj_grains+1)/20
   aout moogladder aout,kfc,krez
-  arev,a_ freeverb aout,aout, 0.8,0.3
-  out aout+0.4*arev
+  sbus_mix(p5, aout, aout)
 endin

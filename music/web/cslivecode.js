@@ -2,6 +2,10 @@ let cs;
 let livecodeOrc = "";
 let fadeCounter = 5;
 
+let kickOrc='';
+let snareOrc='';
+let fusionOrc='';
+
 // UI Elements
 
 let playPauseButton = document.getElementById("playPauseButton"),
@@ -108,7 +112,7 @@ const restart = () => {
   cs.setOption("-m0");
   cs.setOption("-odac");
   cs.setOption("-+msg_color=false");
-  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc);
+  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + kickOrc+snareOrc+fusionOrc);
   cs.start();
 };
 
@@ -231,6 +235,7 @@ function layoutComplete() {
   // Prevent Refresh
 
   window.onbeforeunload = function() {
+    localStorage.setItem("current", editor.getValue());
     return "Are you...sure?";
   };
 
@@ -241,17 +246,38 @@ function layoutComplete() {
     });
   }
 
-  fetch("start.orc").then(function(response) {
+/*  fetch("start.orc").then(function(response) {
     return response.text().then(function(v) {
       editor.setValue(";; Select this code and press ctrl-e to evaluate\n" + v);
       editor.clearHistory();
     });
   });
-
+*/
+  editor.setValue(localStorage.getItem("current"));
+  
   // Initialize Csound and load
   CsoundObj.importScripts("./web/csound/").then(() => {
     onRuntimeInitialized();
   });
+  
+    fetch("orcs/Kick.orc").then(function(response) {
+    return response.text().then(function(v) {
+      kickOrc = v;
+      })
+     });
+
+  fetch("orcs/Snare.orc").then(function(response) {
+    return response.text().then(function(v) {
+      snareOrc = v;
+      })
+     });
+
+  fetch("orcs/Fusion.orc").then(function(response) {
+    return response.text().then(function(v) {
+      fusionOrc = v;
+       })
+     });
+  
   helpButton.addEventListener("click", openHelp);
   playPauseButton.addEventListener("click", playPause);
   restartButton.addEventListener("click", restart);
