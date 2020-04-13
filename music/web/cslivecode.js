@@ -3,7 +3,6 @@ let livecodeOrc = "";
 let fadeCounter = 5;
 
 let userDefinedOrcs = '';
-let str;
   
 // UI Elements
 
@@ -259,25 +258,17 @@ function layoutComplete() {
     onRuntimeInitialized();
   });
   
-  /*
-  fetch('orcs/orcs.txt').then(function(response) {
-      return response.text().then(function(userDefinedOrcFileNames) {
-   
-    userDefinedOrcFileNames.split('\n').map(x => "orcs/" + x + ".orc").forEach(name =>
+
+  fetch("service-worker.js").then(function(response) {
+      return response.text().then(function(str) {
+    let userDefinedOrcFileNames = str.split(",\n  ").filter(x => x.startsWith('"/orcs')).map(x => x.slice(2,-1));
+    userDefinedOrcFileNames.forEach(name =>
     fetch(name).then(function(response) {
       return response.text().then(function(v) {
     userDefinedOrcs += v;
     })
    })
-  );
-   
-    })
-   });
-  */
-  fetch("service-worker.js").then(function(response) {
-      return response.text().then(function(v) {
-    str = v;
-    editor.setValue(str.split(",\n  ").filter(x => x.startsWith('"/orcs')).map(x => x.slice(2,-2)).reduce((a,b)=>a+'\n'+b));
+  );  
     })
    });
  
