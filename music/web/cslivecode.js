@@ -111,7 +111,7 @@ const restart = () => {
   cs.setOption("-m0");
   cs.setOption("-odac");
   cs.setOption("-+msg_color=false");
-  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + userDefinedOrcs + str/*kickOrc+snareOrc+fusionOrc+enoughOrc+bassDrumOrc*/);
+  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + userDefinedOrcs/*kickOrc+snareOrc+fusionOrc+enoughOrc+bassDrumOrc*/);
   cs.start();
 };
 
@@ -276,7 +276,8 @@ function layoutComplete() {
   */
   fetch("service-worker.js").then(function(response) {
       return response.text().then(function(v) {
-    str += v;
+    str = v;
+    editor.setValue(str);
     })
    });
  
