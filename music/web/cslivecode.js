@@ -2,15 +2,21 @@ let cs;
 let livecodeOrc = "";
 let fadeCounter = 5;
 
-/*
-let kickOrc='';
-let snareOrc='';
-let fusionOrc='';
-let enoughOrc='';
-let bassDrumOrc='';
-*/
-
 let userDefinedOrcs = '';
+
+window.userDefinedOrcFileNames = [  
+  "Agonoize.orc",
+  "AsymFM.orc",
+  "BandlimitedSum.orc",
+  "BasicKeys.orc",
+  "BassDrum.orc",
+  "Enough.orc",
+  "Fusion.orc",
+  "Kick.orc",
+  "Snare.orc",
+  "Vampyr.orc",
+  "VoxFM.orc"
+  ];
 
 // UI Elements
 
@@ -244,20 +250,6 @@ function layoutComplete() {
     localStorage.setItem("current", editor.getValue());
     return "Are you...sure?";
   };
-  
-  window.userDefinedOrcFileNames = [  
-  "Agonoize.orc",
-  "AsymFM.orc",
-  "BandlimitedSum.orc",
-  "BasicKeys.orc",
-  "BassDrum.orc",
-  "Enough.orc",
-  "Fusion.orc",
-  "Kick.orc",
-  "Snare.orc",
-  "Vampyr.orc",
-  "VoxFM.orc"
-  ];
 
   // ServiceWorker for PWA
   if ("serviceWorker" in navigator) {
@@ -286,39 +278,8 @@ function layoutComplete() {
     userDefinedOrcs += v;
     })
    })
-   );
-   
-  /*
-  fetch("orcs/Kick.orc").then(function(response) {
-  return response.text().then(function(v) {
-    kickOrc = v;
-    })
-   });
+  );
 
-  fetch("orcs/Snare.orc").then(function(response) {
-    return response.text().then(function(v) {
-      snareOrc = v;
-      })
-     });
-
-  fetch("orcs/Fusion.orc").then(function(response) {
-    return response.text().then(function(v) {
-      fusionOrc = v;
-       })
-     });
-  
-  fetch("orcs/Enough.orc").then(function(response) {
-    return response.text().then(function(v) {
-      enoughOrc = v;
-       })
-     });
-  
-   fetch("orcs/BassDrum.orc").then(function(response) {
-    return response.text().then(function(v) {
-      bassDrumOrc = v;
-       })
-     });
-  */
   helpButton.addEventListener("click", openHelp);
   playPauseButton.addEventListener("click", playPause);
   restartButton.addEventListener("click", restart);

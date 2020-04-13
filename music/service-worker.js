@@ -34,8 +34,6 @@ var filesToCache =
   [ ...originalFilesToCache
   , ...window.userDefinedOrcFileNames.map(x => "/orcs/" + x)];
 
-self.addEventListener(
-
 self.addEventListener("install", function(e) {
   console.log("[ServiceWorker] Install");
   e.waitUntil(
