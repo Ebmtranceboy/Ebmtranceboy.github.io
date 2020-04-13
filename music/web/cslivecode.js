@@ -244,6 +244,20 @@ function layoutComplete() {
     localStorage.setItem("current", editor.getValue());
     return "Are you...sure?";
   };
+  
+  var window.userDefinedOrcFileNames = [  
+  "Agonoize.orc",
+  "AsymFM.orc",
+  "BandlimitedSum.orc",
+  "BasicKeys.orc",
+  "BassDrum.orc",
+  "Enough.orc",
+  "Fusion.orc",
+  "Kick.orc",
+  "Snare.orc",
+  "Vampyr.orc",
+  "VoxFM.orc"
+  ];
 
   // ServiceWorker for PWA
   if ("serviceWorker" in navigator) {

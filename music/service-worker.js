@@ -1,17 +1,5 @@
 var cacheName = "csound-live-code-15";
-var window.userDefinedOrcFileNames = [  
-  "Agonoize.orc",
-  "AsymFM.orc",
-  "BandlimitedSum.orc",
-  "BasicKeys.orc",
-  "BassDrum.orc",
-  "Enough.orc",
-  "Fusion.orc",
-  "Kick.orc",
-  "Snare.orc",
-  "Vampyr.orc",
-  "VoxFM.orc"
-  ];
+
 
 var originalFilesToCache = [
   "/",
