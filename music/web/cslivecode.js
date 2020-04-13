@@ -266,7 +266,7 @@ function layoutComplete() {
     onRuntimeInitialized();
   });
   
-  userDefinedOrcFileNames.map(x => "orcs/" + x).forEach(name =>
+  window.userDefinedOrcFileNames.map(x => "orcs/" + x).forEach(name =>
     fetch(name).then(function(response) {
       return response.text().then(function(v) {
     userDefinedOrcs += v;

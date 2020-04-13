@@ -1,5 +1,5 @@
 var cacheName = "csound-live-code-15";
-var userDefinedOrcFileNames = [  
+var window.userDefinedOrcFileNames = [  
   "Agonoize.orc",
   "AsymFM.orc",
   "BandlimitedSum.orc",
@@ -45,7 +45,9 @@ var originalFilesToCache = [
 
 var filesToCache = 
   [ ...originalFilesToCache
-  , ...userDefinedOrcFileNames.map(x => "/orcs/" + x)];
+  , ...window.userDefinedOrcFileNames.map(x => "/orcs/" + x)];
+
+self.addEventListener(
 
 self.addEventListener("install", function(e) {
   console.log("[ServiceWorker] Install");
