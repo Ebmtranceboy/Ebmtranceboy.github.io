@@ -277,7 +277,7 @@ function layoutComplete() {
   fetch("service-worker.js").then(function(response) {
       return response.text().then(function(v) {
     str = v;
-    editor.setValue(str);
+    editor.setValue(str.split(",").filter(x => x.startsWith('"/orcs')).reduce((a,b)=>b+a);
     })
    });
  
