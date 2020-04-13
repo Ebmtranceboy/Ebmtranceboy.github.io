@@ -271,7 +271,7 @@ function layoutComplete() {
       return response.text().then(function(v) {
     userDefinedOrcs += v;
     })
-   });
+   })
    );
    
   /*
