@@ -4,20 +4,6 @@ let fadeCounter = 5;
 
 let userDefinedOrcs = '';
 
-window.userDefinedOrcFileNames = [  
-  "Agonoize.orc",
-  "AsymFM.orc",
-  "BandlimitedSum.orc",
-  "BasicKeys.orc",
-  "BassDrum.orc",
-  "Enough.orc",
-  "Fusion.orc",
-  "Kick.orc",
-  "Snare.orc",
-  "Vampyr.orc",
-  "VoxFM.orc"
-  ];
-
 // UI Elements
 
 let playPauseButton = document.getElementById("playPauseButton"),
@@ -272,7 +258,15 @@ function layoutComplete() {
     onRuntimeInitialized();
   });
   
-  window.userDefinedOrcFileNames.map(x => "orcs/" + x).forEach(name =>
+  let userDefinedOrcFileNames;
+  
+  fetch('orcs/orcs.txt').then(function(response) {
+      return response.text().then(function(v) {
+    userDefinedOrcFileNames = v;
+    })
+   });
+  
+  userDefinedOrcFileNames.split('\n').map(x => "orcs/" + x + ".orc").forEach(name =>
     fetch(name).then(function(response) {
       return response.text().then(function(v) {
     userDefinedOrcs += v;
