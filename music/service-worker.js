@@ -1,12 +1,21 @@
 var cacheName = "csound-live-code-15";
-var filesToCache = [
+var userDefinedOrcFileNames = [  
+  "Agonoize.orc",
+  "AsymFM.orc",
+  "BandlimitedSum.orc",
+  "BasicKeys.orc",
+  "BassDrum.orc",
+  "Enough.orc",
+  "Fusion.orc",
+  "Kick.orc",
+  "Snare.orc",
+  "Vampyr.orc",
+  "VoxFM.orc"
+  ];
+
+var originalFilesToCache = [
   "/",
   "/index.html",
-  "/orcs/Kick.orc",
-  "/orcs/Snare.orc",
-  "/orcs/Fusion.orc",
-  "/orcs/Enough.orc",
-  "/orcs/BassDrum.orc",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",
@@ -33,6 +42,10 @@ var filesToCache = [
   "https://golden-layout.com/files/latest/css/goldenlayout-base.css",
   "https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css"
 ];
+
+var filesToCache = 
+  [ ...originalFilesToCache
+  , ...userDefinedOrcFileNames.map(x => "/orcs/" + x)];
 
 self.addEventListener("install", function(e) {
   console.log("[ServiceWorker] Install");

@@ -2,11 +2,15 @@ let cs;
 let livecodeOrc = "";
 let fadeCounter = 5;
 
+/*
 let kickOrc='';
 let snareOrc='';
 let fusionOrc='';
 let enoughOrc='';
 let bassDrumOrc='';
+*/
+
+let userDefinedOrcs = '';
 
 // UI Elements
 
@@ -114,7 +118,7 @@ const restart = () => {
   cs.setOption("-m0");
   cs.setOption("-odac");
   cs.setOption("-+msg_color=false");
-  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + kickOrc+snareOrc+fusionOrc+enoughOrc+bassDrumOrc);
+  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + userDefinedOrcs/*kickOrc+snareOrc+fusionOrc+enoughOrc+bassDrumOrc*/);
   cs.start();
 };
 
@@ -262,11 +266,20 @@ function layoutComplete() {
     onRuntimeInitialized();
   });
   
-    fetch("orcs/Kick.orc").then(function(response) {
-    return response.text().then(function(v) {
-      kickOrc = v;
-      })
-     });
+  userDefinedOrcFileNames.map(x => "orcs/" + x).forEach(name =>
+    fetch(name).then(function(response) {
+      return response.text().then(function(v) {
+    userDefinedOrcs += v;
+    })
+   });
+   );
+   
+  /*
+  fetch("orcs/Kick.orc").then(function(response) {
+  return response.text().then(function(v) {
+    kickOrc = v;
+    })
+   });
 
   fetch("orcs/Snare.orc").then(function(response) {
     return response.text().then(function(v) {
@@ -291,7 +304,7 @@ function layoutComplete() {
       bassDrumOrc = v;
        })
      });
-  
+  */
   helpButton.addEventListener("click", openHelp);
   playPauseButton.addEventListener("click", playPause);
   restartButton.addEventListener("click", restart);
