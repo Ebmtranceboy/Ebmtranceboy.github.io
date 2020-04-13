@@ -6,6 +6,7 @@ var filesToCache = [
   "/orcs/Snare.orc",
   "/orcs/Fusion.orc",
   "/orcs/Enough.orc",
+  "/orcs/BassDrum.orc",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",

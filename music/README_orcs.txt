@@ -1,6 +1,10 @@
 To register a new ORC:
 ---------------------
 
+* drive its output to the stereo bus:
+
+      sbus_mix(p5, aleft, aright)
+
 * make sure its content ends with at a new line
 
 * add its name as a new line in service-worker.js:
