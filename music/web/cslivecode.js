@@ -258,21 +258,21 @@ function layoutComplete() {
     onRuntimeInitialized();
   });
   
-  let userDefinedOrcFileNames;
-  
   fetch('orcs/orcs.txt').then(function(response) {
-      return response.text().then(function(v) {
-    userDefinedOrcFileNames = v;
-    })
-   });
-  
-  userDefinedOrcFileNames.split('\n').map(x => "orcs/" + x + ".orc").forEach(name =>
+      return response.text().then(function(userDefinedOrcFileNames) {
+   
+    userDefinedOrcFileNames.split('\n').map(x => "orcs/" + x + ".orc").forEach(name =>
     fetch(name).then(function(response) {
       return response.text().then(function(v) {
     userDefinedOrcs += v;
     })
    })
   );
+   
+    })
+   });
+  
+ 
 
   helpButton.addEventListener("click", openHelp);
   playPauseButton.addEventListener("click", playPause);
