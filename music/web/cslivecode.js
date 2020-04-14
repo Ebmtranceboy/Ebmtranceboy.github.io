@@ -244,21 +244,15 @@ function layoutComplete() {
     });
   }
 
-/*  fetch("start.orc").then(function(response) {
-    return response.text().then(function(v) {
-      editor.setValue(";; Select this code and press ctrl-e to evaluate\n" + v);
-      editor.clearHistory();
-    });
-  });
-*/
   editor.setValue(localStorage.getItem("current"));
+  // editor.clearHistory();
   
   // Initialize Csound and load
   CsoundObj.importScripts("./web/csound/").then(() => {
     onRuntimeInitialized();
   });
   
-
+/*
   fetch("service-worker.js").then(function(response) {
       return response.text().then(function(str) {
     let userDefinedOrcFileNames = str.split(",\n  ").filter(x => x.startsWith('"/orcs')).map(x => x.slice(2,-1));
@@ -271,6 +265,23 @@ function layoutComplete() {
   );  
     })
    });
+ */
+
+  fetch("service-worker.js").then(function(response) {
+      return response.text();
+   })
+   .then(function(str) {
+      let userDefinedOrcFileNames = str.split(",\n  ")
+        .filter(x => x.startsWith('"/orcs'))
+        .map(x => x.slice(2,-1));
+      userDefinedOrcFileNames.forEach(name =>
+        fetch(name).then(function(response) {
+          return response.text().then(function(v) {
+            userDefinedOrcs += v;
+            })
+          })
+        );  
+      });
  
 
   helpButton.addEventListener("click", openHelp);
