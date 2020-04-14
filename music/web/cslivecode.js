@@ -110,7 +110,7 @@ const restart = () => {
   cs.setOption("-m0");
   cs.setOption("-odac");
   cs.setOption("-+msg_color=false");
-  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + userDefinedOrcs/*kickOrc+snareOrc+fusionOrc+enoughOrc+bassDrumOrc*/);
+  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + userDefinedOrcs);
   cs.start();
 };
 
@@ -142,6 +142,19 @@ const insertEuclidplay = () => {
   doc.replaceRange(hexCode, doc.getCursor());
 };
 
+const insertMixer = () => {
+  const hexCode =
+      "instr Mixer\n" +
+      "  al, ar  sbus_read 1\n" +
+      "  out(al, ar)\n" +
+      "  sbus_clear(1)" +
+      "endin\n\n" +
+      'start("Mixer")\n';
+
+  const doc = editor.getDoc();
+  doc.replaceRange(hexCode, doc.getCursor());
+};
+
 let editor = null;
 
 const setupCodeMirror = () => {
@@ -164,6 +177,8 @@ const setupCodeMirror = () => {
       "Cmd-H": insertHexplay,
       "Ctrl-J": insertEuclidplay,
       "Cmd-J": insertEuclidplay,
+      "Ctrl-M": insertMixer,
+      "Cmd-M": insertMixer,
       "Ctrl-;": CodeMirror.commands.toggleComment,
       "Cmd-;": CodeMirror.commands.toggleComment,
       "Ctrl-Alt-C": CodeMirror.commands.toggleComment,
@@ -252,21 +267,6 @@ function layoutComplete() {
     onRuntimeInitialized();
   });
   
-/*
-  fetch("service-worker.js").then(function(response) {
-      return response.text().then(function(str) {
-    let userDefinedOrcFileNames = str.split(",\n  ").filter(x => x.startsWith('"/orcs')).map(x => x.slice(2,-1));
-    userDefinedOrcFileNames.forEach(name =>
-    fetch(name).then(function(response) {
-      return response.text().then(function(v) {
-    userDefinedOrcs += v;
-    })
-   })
-  );  
-    })
-   });
- */
-
   fetch("service-worker.js").then(function(response) {
       return response.text();
    })
@@ -277,13 +277,12 @@ function layoutComplete() {
       userDefinedOrcFileNames.forEach(name =>
         fetch(name).then(function(response) {
           return response.text().then(function(v) {
-            userDefinedOrcs += v;
+            userDefinedOrcs += '\n' + v;
             })
           })
         );  
       });
  
-
   helpButton.addEventListener("click", openHelp);
   playPauseButton.addEventListener("click", playPause);
   restartButton.addEventListener("click", restart);
