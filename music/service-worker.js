@@ -9,6 +9,7 @@ var filesToCache = [
   "/orcs/BandlimitedSum.orc",
   "/orcs/BasicKeys.orc",
   "/orcs/BassDrum.orc",
+  "/orcs/ClosedHat.orc",
   "/orcs/Enough.orc",
   "/orcs/Fusion.orc",
   "/orcs/Kick.orc",
