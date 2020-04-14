@@ -3,6 +3,7 @@ let livecodeOrc = "";
 let fadeCounter = 5;
 
 let userDefinedOrcs = '';
+let userDefinedOps = '';
   
 // UI Elements
 
@@ -110,7 +111,7 @@ const restart = () => {
   cs.setOption("-m0");
   cs.setOption("-odac");
   cs.setOption("-+msg_color=false");
-  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + userDefinedOrcs);
+  cs.compileOrc("ksmps=32\n0dbfs=1\nnchnls=2\nnchnls_i=1\n" + livecodeOrc + userDefinedOps + userDefinedOrcs);
   cs.start();
 };
 
@@ -271,6 +272,7 @@ function layoutComplete() {
       return response.text();
    })
    .then(function(str) {
+
       let userDefinedOrcFileNames = str.split(",\n  ")
         .filter(x => x.startsWith('"/orcs'))
         .map(x => x.slice(2,-1));
@@ -280,7 +282,19 @@ function layoutComplete() {
             userDefinedOrcs += '\n' + v;
             })
           })
-        );  
+        );
+        
+      let userDefinedOpFileNames = str.split(",\n  ")
+        .filter(x => x.startsWith('"/ops'))
+        .map(x => x.slice(2,-1));
+      userDefinedOpFileNames.forEach(name =>
+        fetch(name).then(function(response) {
+          return response.text().then(function(v) {
+            userDefinedOps += '\n' + v;
+            })
+          })
+        );
+        
       });
  
   helpButton.addEventListener("click", openHelp);

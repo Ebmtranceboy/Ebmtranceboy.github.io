@@ -1,0 +1,11 @@
+opcode number_of_ones,i,i
+  inb xin
+  if (inb == 0) then
+    inext = 0
+  elseif (inb % 2 == 0) then
+    inext = number_of_ones(inb/2)
+  else
+    inext = 1 + number_of_ones((inb-1)/2)
+  endif
+  xout inext
+endop

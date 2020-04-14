@@ -17,6 +17,8 @@ var filesToCache = [
   "/orcs/Snare.orc",
   "/orcs/Vampyr.orc",
   "/orcs/VoxFM.orc",
+  "/ops/number_of_ones_i_i.op",
+  "/ops/number_of_ones_i_S.op",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",
