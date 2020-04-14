@@ -15,6 +15,7 @@ var filesToCache = [
   "/orcs/Kick.orc",
   "/orcs/Logan.orc",
   "/orcs/Snare.orc",
+  "/orcs/Tales.orc",
   "/orcs/Vampyr.orc",
   "/orcs/VoxFM.orc",
   "/ops/number_of_ones_i_i.op",
