@@ -20,7 +20,7 @@ var filesToCache = [
   "/orcs/VoxFM.orc",
   "/ops/number_of_ones_i_i.op",
   "/ops/number_of_ones_i_S.op",
-  "/ops/arpmidi_i_iii[].op",
+  "/ops/arpmidi_i_iik[].op",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",
