@@ -25,4 +25,4 @@ endop
 opcode cue,i,k[]
   kdurs[] xin
   xout cue(kdurs, now_tick())
-endop  
+endop 
