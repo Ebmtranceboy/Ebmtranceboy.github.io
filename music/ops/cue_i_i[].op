@@ -1,23 +1,29 @@
-opcode cue,i,i[]iiii
-  idurs[],istart,im,idx,is xin
+opcode cue,i,i[]iii
+  idurs[],istart,im,is xin
   
   iy = idurs[istart]
   if (im<is+iy) then
-   iout = idx
+   iout = istart
   else 
-   iout = cue(idurs,istart+1,im,idx+1,is+iy)
+   iout = cue(idurs,istart+1,im,is+iy)
   endif
   xout iout
 endop
 
 opcode cue,i,i[]i
   idurs[],im xin 
-  isum = sumarray(idurs)
+  
+  isum = 0
+  idx = 0
+  while (idx < lenarray(idurs)) do
+    isum += idurs[idx]
+    idx += 1
+  od
   
   if (im >= isum) then
     iout = cue(idurs, im-isum)
   else
-    iout = cue(idurs, 0, im, 0, 0)
+    iout = cue(idurs, 0, im, 0)
   endif
   xout iout
 endop
