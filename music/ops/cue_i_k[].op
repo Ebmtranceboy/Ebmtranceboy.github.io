@@ -1,0 +1,28 @@
+opcode cue,i,k[]iiii
+  kdurs[],istart,im,idx,is xin
+  
+  iy = i(kdurs,istart)
+  if (im<is+iy) then
+   iout = idx
+  else 
+   iout = cue(kdurs,istart+1,im,idx+1,is+iy)
+  endif
+  xout iout
+endop
+
+opcode cue,i,k[]i
+  kdurs[],im xin 
+  isum = i(sumarray(kdurs))
+  
+  if (im >= isum) then
+    iout = cue(kdurs, im-isum)
+  else
+    iout = cue(kdurs, 0, im, 0, 0)
+  endif
+  xout iout
+endop
+
+opcode cue,i,k[]
+  kdurs[] xin
+  xout cue(kdurs, now_tick())
+endop  
