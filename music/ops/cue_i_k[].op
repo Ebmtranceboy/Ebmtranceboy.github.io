@@ -12,7 +12,8 @@ endop
 
 opcode cue2,i,k[]i
   kdurs[],im xin 
-  isum = i(sumarray(kdurs))
+  ksum = sumarray(kdurs)
+  isum = i(ksum)
   
   if (im >= isum) then
     iout = cue2(kdurs, im-isum)
