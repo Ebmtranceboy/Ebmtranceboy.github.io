@@ -21,7 +21,7 @@ var filesToCache = [
   "/ops/number_of_ones_i_i.op",
   "/ops/number_of_ones_i_S.op",
   "/ops/arpmidi_i_iik[].op",
-  "/ops/cue_i_k[].op",
+  "/ops/cue_i_i[].op",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",

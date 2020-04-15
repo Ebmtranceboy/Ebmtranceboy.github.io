@@ -1,0 +1,28 @@
+opcode cue,i,i[]iiii
+  idurs[],istart,im,idx,is xin
+  
+  iy = idurs[istart]
+  if (im<is+iy) then
+   iout = idx
+  else 
+   iout = cue(idurs,istart+1,im,idx+1,is+iy)
+  endif
+  xout iout
+endop
+
+opcode cue,i,i[]i
+  idurs[],im xin 
+  isum = sumarray(idurs)
+  
+  if (im >= isum) then
+    iout = cue(idurs, im-isum)
+  else
+    iout = cue(idurs, 0, im, 0, 0)
+  endif
+  xout iout
+endop
+
+opcode cue,i,i[]
+  idurs[] xin
+  xout cue(idurs, now_tick())
+endop 
