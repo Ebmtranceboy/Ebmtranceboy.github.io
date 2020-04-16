@@ -148,7 +148,7 @@ const insertMixer = () => {
       "instr Mixer\n" +
       "  al, ar  sbus_read 1\n" +
       "  out(al, ar)\n" +
-      "  sbus_clear(1)" +
+      "  sbus_clear(1)\n" +
       "endin\n\n" +
       'start("Mixer")\n';
 
