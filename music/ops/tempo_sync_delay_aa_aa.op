@@ -1,0 +1,43 @@
+
+opcode tempo_sync_delay,aa,aa
+  ain1, ain2 xin
+
+  ibpm = 60 
+  inl = xchan:i("tempo_sync_delay.frac",0.25) ;note length 
+  kfb = xchan:k("tempo_sync_delay.fb",1.0)
+  ipingpong = 1
+  iswap = 1
+  ibal = 0.5
+  iwet = 0.9
+
+  idel = ( 1/(ibpm/60) * inl )
+
+  aleft delayr idel
+  aright delayr idel
+
+  if ( ipingpong == 0 ) then
+	  ado1 = aleft + ain1
+	  ado2 = aright + ain2
+  else
+	  ado1 = aright + ( .5 * (ain1 + ain2) )
+	  ado2 = aleft
+  endif
+
+  delayw ado1 * kfb
+  delayw ado2 * kfb
+
+  if ( iswap == 1 ) then
+	  aout1 = aright
+	  aout2 = aleft
+  else
+	  aout1 = aleft
+	  aout2 = aright
+  endif
+
+  aout1 = ( aout1 * ( 1 - ibal )  ) * 2
+  aout2 = ( aout2 * ibal ) * 2
+
+  aout1 = (ain1 * iwet) + (aout1 * (1 - iwet))
+  aout2 = (ain2 * iwet) + (aout2 * (1 - iwet))
+  xout aout1, aout2
+endop

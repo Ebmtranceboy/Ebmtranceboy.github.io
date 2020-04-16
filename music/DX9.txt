@@ -1,0 +1,9 @@
+
+./DxKeys.ins:; DX9 mode 1
+./Hunter.ins:; DX9 mode 2
+./Enough.ins:; DX9 mode 3
+./HellDrum.ins:; DX9 mode 4
+./Keytar.ins:; DX9 mode 5
+./Dummy.ins:; DX9 mode 6
+./Bouffon.ins:; DX9 mode 7
+./Breathe.ins:; DX9 mode 8
