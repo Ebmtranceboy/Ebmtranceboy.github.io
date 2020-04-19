@@ -4,9 +4,12 @@ You can edit this file as you like.
 -}
 { name = "my-project"
 , dependencies =
-  [ "cartesian"
+  [ "aff"
+  , "affjax"
+  , "cartesian"
   , "colors"
   , "console"
+  , "dom-filereader"
   , "effect"
   , "fft"
   , "integers"
@@ -19,6 +22,7 @@ You can edit this file as you like.
   , "spork"
   , "strings"
   , "variant"
+  , "web-file"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

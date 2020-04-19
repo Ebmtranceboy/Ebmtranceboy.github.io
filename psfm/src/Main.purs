@@ -5,15 +5,19 @@ import Prelude
 import Color (rgb, cssStringRGBA)
 import Data.Array (length, mapWithIndex, zip, (..), concat, zipWith)
 import Data.Complex (Cartesian(..))
+import Data.Const (Const)
 import Data.Either (Either(..), hush)
 import Data.Foldable (sum, foldr)
 import Data.Int (round, toNumber)
 import Data.Map (fromFoldable, empty)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromJust, maybe)
 import Data.Number (infinity)
 import Data.Number.Format (toStringWith, fixed)
 import Data.String (drop, split, trim, Pattern(..), joinWith)
 import Effect (Effect)
+import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
+import Effect.Exception as Exception
 import ML.LinAlg (Matrix, ins)
 import Math (exp, pow)
 import Numeric.Calculus (Signal1D, Signal2D, differentiate, laplacian)
@@ -21,11 +25,17 @@ import PRNG ((!!))
 import Parser.Eval (eval)
 import Parser.Parser (parse)
 import Parser.Syntax (Dual(..), Expr(..), tanh)
+import Partial.Unsafe (unsafePartial)
 import SVGpork.Render (svgline, svgpath)
+import Spork.App as App
 import Spork.Html (Html)
 import Spork.Html as H
-import Spork.PureApp (PureApp)
-import Spork.PureApp as PureApp
+import Spork.Interpreter (merge, never, throughAff)
+import Web.Event.Event (Event, target) as Event
+import Web.File.File (toBlob)
+import Web.File.FileList (item)
+import Web.File.FileReader.Aff (readAsText)
+import Web.HTML.HTMLInputElement (files, fromEventTarget)
 
 type System a = Array a -> Array a
 
@@ -124,15 +134,24 @@ instance formattedArray :: Formatted a => Formatted (Array (Array a)) where
   showWithFormat n xxs =
     "[" <> joinWith ",\n" ((\xs -> "[" <> joinWith ", " (showWithFormat n <$> xs) <> "]") <$> xxs) <> "]"
 
+type FileName = String
+type FileContent = String
+
+data Unpure a
+    = GetFileText Event.Event (FileContent -> a)
+
 type State =
   { signal :: Signal1D
   , diff :: Signal1D
   , diff2 :: Signal1D
   , sig2D :: Signal2D
   , diff2D :: Signal2D
+  , textFile :: FileContent
   }
 
 data Action = Iterate
+            | UpdateFileText Event.Event
+            | DoneReading FileContent
 
 epsilon = 0.001 :: Number
 
@@ -145,8 +164,13 @@ mul2D  {dT, samples: s1} {dT: dT_, samples: s2} = {dT, samples: zipWith (zipWith
 scl2D :: Number -> Signal2D -> Signal2D
 scl2D k  {dT, samples} = {dT, samples: (\xs -> (_* k) <$> xs) <$> samples}
 
-update ∷ State → Action → State
-update s _ = s{sig2D = s.sig2D `add2D` scl2D epsilon (laplacian s.sig2D)}
+update ∷ State -> Action -> App.Transition Unpure State Action
+update s Iterate = App.purely $ s{sig2D = s.sig2D `add2D` scl2D epsilon (laplacian s.sig2D)}
+update s (UpdateFileText ev) =
+  { model: s
+  , effects: App.lift (GetFileText ev DoneReading)
+  }
+update s (DoneReading text) = App.purely $ s{textFile = text}
 
 bar :: OffsetY -> Number -> Number -> Html Action
 bar offsetY x y =
@@ -191,6 +215,8 @@ render s =
   H.div []
   [ H.label [] [H.text $  (show $ extremums s.signal.samples) <> (show $ extremums s.diff.samples)]
   , H.button [H.onClick $ H.always_ Iterate] [H.text "Iterate"]
+  , H.input [H.type_ H.InputFile, H.onChange $ H.always UpdateFileText]
+  , H.label [] [H.text $ s.textFile]
   , H.elemWithNS
       ns
       "svg"
@@ -225,19 +251,43 @@ gaussians = (\i -> (\j -> gaussian2D (i+4) (j-7) + gaussian2D (i-6) (j+5)) <$> (
 
 sigGaussian2D = {dT: 0.1, samples: gaussians} :: Signal2D
 
-app ∷ PureApp State Action
+app ∷ App.App Unpure (Const Void) State Action
 app = { update
+      , subs: const mempty
       , render
-      , init: { signal: sigGaussian
-              , diff: differentiate 1 sigGaussian
-              , diff2: differentiate 2 sigGaussian
-              , sig2D: sigGaussian2D
-              , diff2D: laplacian sigGaussian2D
-              }
+      , init: App.purely  { signal: sigGaussian
+                          , diff: differentiate 1 sigGaussian
+                          , diff2: differentiate 2 sigGaussian
+                          , sig2D: sigGaussian2D
+                          , diff2D: laplacian sigGaussian2D
+                          , textFile: ""
+                          }
       }
 
-main ∷ Effect Unit
-main = void $ PureApp.makeWithSelector app "#app"
+
+runUnpure ::  Unpure ~> Aff
+runUnpure unpure =
+    case unpure of
+        GetFileText ev next -> do
+          let target = unsafePartial $ fromJust $ Event.target ev
+          mfs <- liftEffect $ files (unsafePartial
+               $ fromJust
+               $ fromEventTarget target)
+          let mfile = maybe Nothing (\fs -> item 0 fs) mfs
+          let mblob = maybe Nothing (\file -> Just $ toBlob file) mfile
+          str <- maybe (pure "") (\blob -> readAsText blob) mblob
+          pure $ next str
+
+handleErrors :: Exception.Error -> Effect Unit
+handleErrors error =
+    -- TODO what is this?
+    pure unit
+
+main :: Effect Unit
+main = do
+    let interpreter = throughAff runUnpure handleErrors
+    inst <- App.makeWithSelector (interpreter `merge` never) app "#app"
+    inst.run
 
 {-
 main :: Effect Unit
