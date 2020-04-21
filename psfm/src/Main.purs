@@ -17,7 +17,6 @@ import Data.String (drop, split, trim, Pattern(..), joinWith)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
-import Effect.Exception as Exception
 import ML.LinAlg (Matrix, ins)
 import Math (exp, pow)
 import Numeric.Calculus (Signal1D, Signal2D, differentiate, laplacian)
@@ -31,7 +30,7 @@ import Spork.App as App
 import Spork.Html (Html)
 import Spork.Html as H
 import Spork.Interpreter (merge, never, throughAff)
-import Web.Event.Event (Event, target) as Event
+import Web.Event.Event (Event, target)
 import Web.File.File (toBlob)
 import Web.File.FileList (item)
 import Web.File.FileReader.Aff (readAsText)
@@ -134,11 +133,10 @@ instance formattedArray :: Formatted a => Formatted (Array (Array a)) where
   showWithFormat n xxs =
     "[" <> joinWith ",\n" ((\xs -> "[" <> joinWith ", " (showWithFormat n <$> xs) <> "]") <$> xxs) <> "]"
 
-type FileName = String
 type FileContent = String
 
 data Unpure a
-    = GetFileText Event.Event (FileContent -> a)
+    = GetFileText Event (FileContent -> a)
 
 type State =
   { signal :: Signal1D
@@ -150,7 +148,7 @@ type State =
   }
 
 data Action = Iterate
-            | UpdateFileText Event.Event
+            | UpdateFileText Event
             | DoneReading FileContent
 
 epsilon = 0.001 :: Number
@@ -264,28 +262,18 @@ app = { update
                           }
       }
 
-
 runUnpure ::  Unpure ~> Aff
 runUnpure unpure =
     case unpure of
         GetFileText ev next -> do
-          let target = unsafePartial $ fromJust $ Event.target ev
           mfs <- liftEffect $ files (unsafePartial
-               $ fromJust
-               $ fromEventTarget target)
-          let mfile = maybe Nothing (\fs -> item 0 fs) mfs
-          let mblob = maybe Nothing (\file -> Just $ toBlob file) mfile
-          str <- maybe (pure "") (\blob -> readAsText blob) mblob
-          pure $ next str
-
-handleErrors :: Exception.Error -> Effect Unit
-handleErrors error =
-    -- TODO what is this?
-    pure unit
+              $ fromJust $ fromEventTarget =<< target ev)
+          next <$> (maybe (pure "") readAsText
+                      $ (Just <<< toBlob) =<< item 0 =<< mfs)
 
 main :: Effect Unit
 main = do
-    let interpreter = throughAff runUnpure handleErrors
+    let interpreter = throughAff runUnpure (const $ pure unit)
     inst <- App.makeWithSelector (interpreter `merge` never) app "#app"
     inst.run
 

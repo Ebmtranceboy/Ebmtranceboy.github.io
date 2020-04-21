@@ -24434,6 +24434,7 @@ var PS = {};
       return semigroupCanceler;
   }, nonCanceler);
   exports["runAff"] = runAff;
+  exports["functorAff"] = functorAff;
   exports["applicativeAff"] = applicativeAff;
   exports["bindAff"] = bindAff;
   exports["monadEffectAff"] = monadEffectAff;
@@ -29071,19 +29072,10 @@ var PS = {};
       };
   };
   var runUnpure = function (unpure) {
-      var target = Data_Maybe.fromJust()(Web_Event_Event.target(unpure.value0));
-      return Control_Bind.bind(Effect_Aff.bindAff)(Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(Web_HTML_HTMLInputElement.files(Data_Maybe.fromJust()(Web_HTML_HTMLInputElement.fromEventTarget(target)))))(function (mfs) {
-          var mfile = Data_Maybe.maybe(Data_Maybe.Nothing.value)(function (fs) {
-              return Web_File_FileList.item(0)(fs);
-          })(mfs);
-          var mblob = Data_Maybe.maybe(Data_Maybe.Nothing.value)(function (file) {
-              return Data_Maybe.Just.create(Web_File_File.toBlob(file));
-          })(mfile);
-          return Control_Bind.bind(Effect_Aff.bindAff)(Data_Maybe.maybe(Control_Applicative.pure(Effect_Aff.applicativeAff)(""))(function (blob) {
-              return Web_File_FileReader_Aff.readAsText(blob);
-          })(mblob))(function (str) {
-              return Control_Applicative.pure(Effect_Aff.applicativeAff)(unpure.value1(str));
-          });
+      return Control_Bind.bind(Effect_Aff.bindAff)(Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(Web_HTML_HTMLInputElement.files(Data_Maybe.fromJust()(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Web_HTML_HTMLInputElement.fromEventTarget)(Web_Event_Event.target(unpure.value0))))))(function (mfs) {
+          return Data_Functor.map(Effect_Aff.functorAff)(unpure.value1)(Data_Maybe.maybe(Control_Applicative.pure(Effect_Aff.applicativeAff)(""))(Web_File_FileReader_Aff.readAsText)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(function ($67) {
+              return Data_Maybe.Just.create(Web_File_File.toBlob($67));
+          })(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Web_File_FileList.item(0))(mfs))));
       });
   };
   var names = function (arr) {
@@ -29125,9 +29117,6 @@ var PS = {};
           slope: 1.0
       }));
   };
-  var handleErrors = function (error) {
-      return Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
-  };
   var gaussian2D = function (i) {
       return function (j) {
           return $$Math.exp(-$$Math.pow(Data_Int.toNumber(i - Data_EuclideanRing.div(Data_EuclideanRing.euclideanRingInt)(nSamples)(2) | 0) / 4.0)(2.0) - $$Math.pow(Data_Int.toNumber(j - Data_EuclideanRing.div(Data_EuclideanRing.euclideanRingInt)(nSamples)(2) | 0) / 4.0)(2.0));
@@ -29157,8 +29146,8 @@ var PS = {};
   var formattedComplex = new Formatted(function (n) {
       return function (v) {
           return showWithFormat(formattedNumber)(n)(v.value0) + ((function () {
-              var $34 = v.value1 < 0;
-              if ($34) {
+              var $33 = v.value1 < 0;
+              if ($33) {
                   return "-" + showWithFormat(formattedNumber)(n)(-v.value1);
               };
               return "+" + showWithFormat(formattedNumber)(n)(v.value1);
@@ -29235,8 +29224,8 @@ var PS = {};
                   return v2;
               };
               if (v2 instanceof Parser_Syntax.Var) {
-                  var $50 = v2.value0 === v;
-                  if ($50) {
+                  var $49 = v2.value0 === v;
+                  if ($49) {
                       return new Parser_Syntax.Var(v1);
                   };
                   return v2;
@@ -29247,14 +29236,14 @@ var PS = {};
               if (v2 instanceof Parser_Syntax.Unop) {
                   return new Parser_Syntax.Unop(v2.value0, deepRename(v)(v1)(v2.value1));
               };
-              throw new Error("Failed pattern match at Main (line 108, column 1 - line 108, column 57): " + [ v.constructor.name, v1.constructor.name, v2.constructor.name ]);
+              throw new Error("Failed pattern match at Main (line 107, column 1 - line 107, column 57): " + [ v.constructor.name, v1.constructor.name, v2.constructor.name ]);
           };
       };
   };
   var charter = function (v) {
       var bounded = 255.0 * Parser_Syntax.tanh(Parser_Syntax.realNumber)(v / 0.7);
-      var $57 = bounded < 0.0;
-      if ($57) {
+      var $56 = bounded < 0.0;
+      if ($56) {
           return Color.cssStringRGBA(Color.rgb(255 - Data_Int.round(-bounded) | 0)(255 - Data_Int.round(-bounded) | 0)(255));
       };
       return Color.cssStringRGBA(Color.rgb(255)(255 - Data_Int.round(bounded) | 0)(255 - Data_Int.round(bounded) | 0));
@@ -29369,7 +29358,7 @@ var PS = {};
                   signal: s.signal
               });
           };
-          throw new Error("Failed pattern match at Main (line 167, column 1 - line 167, column 63): " + [ s.constructor.name, v.constructor.name ]);
+          throw new Error("Failed pattern match at Main (line 165, column 1 - line 165, column 63): " + [ s.constructor.name, v.constructor.name ]);
       };
   };
   var app = {
@@ -29386,7 +29375,7 @@ var PS = {};
       })
   };
   var main = (function () {
-      var interpreter = Spork_Interpreter.throughAff(runUnpure)(handleErrors);
+      var interpreter = Spork_Interpreter.throughAff(runUnpure)(Data_Function["const"](Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit)));
       return function __do() {
           var inst = Spork_App.makeWithSelector(Spork_Interpreter.merge(Effect.applicativeEffect)(interpreter)(Spork_Interpreter.never(Effect.monadEffect)))(app)("#app")();
           return inst.run();
@@ -29440,7 +29429,6 @@ var PS = {};
   exports["sigGaussian2D"] = sigGaussian2D;
   exports["app"] = app;
   exports["runUnpure"] = runUnpure;
-  exports["handleErrors"] = handleErrors;
   exports["main"] = main;
   exports["formattedNumber"] = formattedNumber;
   exports["formattedComplex"] = formattedComplex;
