@@ -10,6 +10,9 @@ You can edit this file as you like.
   , "psci-support"
   , "rationals"
   , "spork"
+  , "prng-middle-square"
+  , "cartesian"
+  , "fft"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

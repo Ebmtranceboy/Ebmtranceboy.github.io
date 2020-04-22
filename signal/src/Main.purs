@@ -2,17 +2,17 @@ module Main where
 
 import Prelude
 
+import Control.Monad.ST (ST, run, for)
 import Data.Array ((!!)) as Array
-import Data.Array (filter, length, mapWithIndex, tail, zip, (..))
+import Data.Array (filter, length, replicate, tail, take, zip, (..))
+import Data.Array.ST (STArray, poke, withArray)
+import Data.Complex (Cartesian(..), real)
+import Data.Complex.FFT (Bin, Complex, Direction(..), fft, sortByMagnitude, unsafePeek)
 import Data.Const (Const)
 import Data.Foldable (foldr, sum)
 import Data.Int (floor, toNumber)
-import Data.List (head, toUnfoldable)
-import Data.Map (Map, empty, insert, isEmpty, lookup, values)
-import Data.Map (filter) as Map
-import Data.Map.Internal (keys)
+import Data.Map (Map, empty, insert, lookup, values)
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.Rational (Rational)
 import Data.Rational (fromInt) as Q
 import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple(..))
@@ -21,6 +21,7 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Global (readFloat)
 import Global.Unsafe (unsafeEncodeURIComponent)
+import PRNG (Conditional(..), Probability, draw, prng, randoms, reshpeDiscreteDistribution)
 import Partial.Unsafe (unsafePartial)
 import Spork.App as App
 import Spork.Html (Html, InputType(..))
@@ -50,8 +51,11 @@ level n x =
 
 order = 13  :: Int
 
+rescale :: Int -> Int -> Number
+rescale n lev =  (toNumber $ 2 * lev + 1) / toNumber n - 1.0
+
 quantize :: Int -> Number -> Number
-quantize n x = (toNumber $ 2 * level n x + 1) / toNumber n - 1.0
+quantize n x = rescale n (level n x)
 
 buildMap :: Array Int -> Map (Tuple Int Int) (Array Probability)
 buildMap x0s =
@@ -80,93 +84,57 @@ probabilize m =
                               else Q.fromInt 1 / Q.fromInt order
     ) <$> (0..(order-1))
 
-type Probability = Rational
-type Singleton = {option :: Int, probability :: Probability}
-type Couple = Tuple Singleton Singleton
-data Conditional = Singleton Singleton | Couple Couple
+buildStochastic :: forall h. Map (Tuple Int Int) (Array Conditional) -> Array Int -> Int -> STArray h Int -> ST h Unit
+buildStochastic arr rnds n a =
+  for 2 (n-1) \ i -> do
+    n0 <- unsafePeek (i-2) a
+    n1 <- unsafePeek (i-1) a
+    let r0 = rnds !! (2*i)
+    let r1 = rnds !! (2*i+1)
+    let n2 = draw (case lookup (Tuple n0 n1) arr of
+                    Just ps -> ps
+                    _       -> [Singleton {option: order `div` 2, probability: Q.fromInt 1}]) r0 r1
+    poke i n2 a
 
-instance showConditional :: Show Conditional where
-  show (Singleton s) = "Singleton" <> show s
-  show (Couple c) = "Couple" <> show c
+generateStochastic :: Int -> Map (Tuple Int Int) (Array Conditional) -> Array Number
+generateStochastic n arr =
+  let rnds = randoms (2*n) $ prng {gen: 0, val: 0, seed: 20200421}
+    in rescale order <$> run (withArray (buildStochastic arr rnds n) (replicate n zero))
 
-predicateConditional :: (Probability -> Boolean) -> Conditional -> Boolean
-predicateConditional f (Singleton s) = f s.probability
-predicateConditional f (Couple (Tuple s1 s2)) =
-  f $ s1.probability + s2.probability
+buildSpectral :: forall h. Array Bin -> STArray h Complex -> ST h Unit
+buildSpectral bs a =
+  for 0 (length bs) \i -> do
+    let bin = bs !! i
+    let k = bin.freq
+    poke k (Cartesian bin.re bin.im) a
 
-defaultConditional :: Conditional -> Boolean
-defaultConditional = predicateConditional (_ < Q.fromInt 1)
+generateSpectral :: (Array Number) -> Int -> Array Bin -> Array Number
+generateSpectral signal n bs =
+  {-zipWith sub signal-} (real <$> (fft Backward $ run (withArray (buildSpectral bs) (replicate n zero))))
 
-excessConditional :: Conditional -> Boolean
-excessConditional = predicateConditional (_ > Q.fromInt 1)
+processSpectral :: FileContent -> FileContent
+processSpectral str =
+  let signal = readFloat  <$> (filter (_ /= "") $ split (Pattern "\n") str)
+  in foldr (\a b -> show a <> "\n" <> b) ""
+  $ generateSpectral signal 16384
+  $ take 2000
+  $ (sortByMagnitude
+  $ fft Forward
+  $ (\r -> Cartesian r 0.0)
+  <$> signal)
 
-completeConditionals :: Map Int Conditional -> Boolean
-completeConditionals cs =
-  (isEmpty $ Map.filter defaultConditional cs)
-  && (isEmpty $ Map.filter excessConditional cs)
-
--- |
--- | Organize a discrete n-sized law of probability as an n-sized array
--- | of singletons or couples, more suited for drawing. For instance
--- |
--- |  A    B    C    D    =>       I          II             III       IV
--- | 0.2  0.3  0.1  0.4  abs:  (D:0.25) (D:0.15, C:0.1) (B:0.25) (B:0.05, A:0.2)
--- |                     rel:  (D:1)   (D:3/5, C:2/5)    (B:1)   (B:1/5, A:4/5)
--- |
--- | so that P(A) = P(A|IV)P(IV) = (4/5)(1/4) = 1/5
--- |         P(B) = P(B|III)P(III)+P(B|IV)P(IV) = (1)(1/4)+(1/5)(1/4) = 3/10
--- |         P(C) = P(C|II)P(II) = (2/5)(1/4) = 1/10
--- |         P(D) = P(D|I)P(I)+P(D|II)P(II) = (1)(1/4)+(3/5)(1/4) = 2/5
--- |
-
-reshpeDiscreteDistribution :: Array Probability -> Array Conditional
-reshpeDiscreteDistribution ps =
-  let n = length $ filter (_ /= Q.fromInt 0) ps
-      initial =
-        foldr (\(Tuple i p) m ->
-          if p > Q.fromInt 0
-            then insert i
-                   (Singleton { option: i
-                              , probability: p * Q.fromInt n})
-                   m
-            else m) empty
-            $ mapWithIndex (\i p -> Tuple i p) ps
-      go cur =
-        if completeConditionals cur
-          then cur
-          else
-            let kexcess = unsafePartial $ fromJust $ head
-                          $ keys $ Map.filter excessConditional cur
-                kdefault =  unsafePartial $ fromJust $ head
-                          $ keys $ Map.filter defaultConditional cur
-                cexcess = case lookup kexcess cur of
-                  Just (Singleton s) -> Just s
-                  _                  -> Nothing
-                cdefault = case lookup kdefault cur of
-                  Just (Singleton s) -> Just s
-                  _                  -> Nothing
-                next = maybe empty identity
-                  $ (\e d ->
-                      let diff = Q.fromInt 1 - d.probability
-                      in insert kexcess (Singleton { option: e.option
-                                                   , probability: e.probability - diff
-                                                   })
-                        $ insert kdefault (Couple
-                          $ Tuple d
-                                  { option: e.option
-                                  , probability: diff
-                                  }) cur) <$> cexcess <*> cdefault
-            in go next
-  in toUnfoldable $ values $ go initial
-
-process :: FileContent -> FileContent
-process str = foldr (\a b -> show a <> "\n" <> b) ""
-  $ (\x -> [x])
+processStochastic :: FileContent -> FileContent
+processStochastic str = foldr (\a b -> show a <> "\n" <> b) ""
+  -- $ (\x -> [x])
+  $ generateStochastic 16384
   $ reshpeDiscreteDistribution
   <$> (buildMap
   $ (level order)
     <$> readFloat
     <$> (filter (_ /= "") $ split (Pattern "\n") str))
+
+process :: FileContent -> FileContent
+process = processSpectral
 
 data Unpure a
     = GetFileText Event (FileContent -> a)

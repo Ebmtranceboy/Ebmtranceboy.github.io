@@ -21782,35 +21782,33 @@ var PS = {};
   };
   var process = function (dir) {
       return function (b) {
-          return function (fs) {
-              return function (complexp) {
-                  return function (a) {
-                      return Control_Monad_ST_Internal["for"](0)(b)(function (i) {
-                          var step = 1 << i;
-                          var count = 1 << ((b - i | 0) - 1 | 0);
-                          return Control_Monad_ST_Internal["for"](0)(count)(function (j) {
-                              return Control_Monad_ST_Internal["for"](0)(step)(function (k) {
-                                  var idx = ((2 * j | 0) * step | 0) + k | 0;
-                                  return function __do() {
-                                      var f0 = unsafePeek(idx)(a)();
-                                      var fk = unsafePeek(idx + step | 0)(a)();
-                                      var cexp = PRNG.nth(complexp)(count * k | 0);
-                                      var f1 = Data_Semiring.mul(Data_Complex.semiringCartesian(Data_Ring.ringNumber))(fk)((function () {
-                                          if (dir instanceof Forward) {
-                                              return Data_Complex.conjugate(Data_Ring.ringNumber)(cexp);
-                                          };
-                                          if (dir instanceof Backward) {
-                                              return cexp;
-                                          };
-                                          throw new Error("Failed pattern match at Data.Complex.FFT (line 61, column 34 - line 63, column 53): " + [ dir.constructor.name ]);
-                                      })());
-                                      Data_Array_ST.poke(idx)(Data_Semiring.add(Data_Complex.semiringCartesian(Data_Ring.ringNumber))(f0)(f1))(a)();
-                                      return Data_Array_ST.poke(idx + step | 0)(Data_Ring.sub(Data_Complex.ringCartesian(Data_Ring.ringNumber))(f0)(f1))(a)();
-                                  };
-                              });
+          return function (complexp) {
+              return function (a) {
+                  return Control_Monad_ST_Internal["for"](0)(b)(function (i) {
+                      var step = 1 << i;
+                      var count = 1 << ((b - i | 0) - 1 | 0);
+                      return Control_Monad_ST_Internal["for"](0)(count)(function (j) {
+                          return Control_Monad_ST_Internal["for"](0)(step)(function (k) {
+                              var idx = ((2 * j | 0) * step | 0) + k | 0;
+                              return function __do() {
+                                  var f0 = unsafePeek(idx)(a)();
+                                  var fk = unsafePeek(idx + step | 0)(a)();
+                                  var cexp = PRNG.nth(complexp)(count * k | 0);
+                                  var f1 = Data_Semiring.mul(Data_Complex.semiringCartesian(Data_Ring.ringNumber))(fk)((function () {
+                                      if (dir instanceof Forward) {
+                                          return Data_Complex.conjugate(Data_Ring.ringNumber)(cexp);
+                                      };
+                                      if (dir instanceof Backward) {
+                                          return cexp;
+                                      };
+                                      throw new Error("Failed pattern match at Data.Complex.FFT (line 61, column 34 - line 63, column 53): " + [ dir.constructor.name ]);
+                                  })());
+                                  Data_Array_ST.poke(idx)(Data_Semiring.add(Data_Complex.semiringCartesian(Data_Ring.ringNumber))(f0)(f1))(a)();
+                                  return Data_Array_ST.poke(idx + step | 0)(Data_Ring.sub(Data_Complex.ringCartesian(Data_Ring.ringNumber))(f0)(f1))(a)();
+                              };
                           });
                       });
-                  };
+                  });
               };
           };
       };
@@ -21837,7 +21835,7 @@ var PS = {};
               return Data_Functor.map(Data_Complex.functorCartesian)(function (v) {
                   return v / $$Math.sqrt(n);
               })(z);
-          })(Data_Array_ST.withArray(process(dir)(b)(fs)(complexp))(fs)());
+          })(Data_Array_ST.withArray(process(dir)(b)(complexp))(fs)());
       };
   };
   var applyZipList = new Control_Apply.Apply(function () {

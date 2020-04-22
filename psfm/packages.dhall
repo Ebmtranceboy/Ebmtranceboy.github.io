@@ -166,7 +166,7 @@ let additions =
         , repo =
             "https://github.com/Ebmtranceboy/purescript-fft.git"
         , version =
-            "v0.2.1"
+            "v0.2.2"
        }
       }
 
