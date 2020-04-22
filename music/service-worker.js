@@ -29,6 +29,7 @@ var filesToCache = [
   "/orcs/PsyBass.orc",
   "/orcs/PsyKick.orc",
   "/orcs/Snare.orc",
+  "/orcs/SnareDrum.orc",
   "/orcs/StringSection.orc",
   "/orcs/Tales.orc",
   "/orcs/Vampyr.orc",
