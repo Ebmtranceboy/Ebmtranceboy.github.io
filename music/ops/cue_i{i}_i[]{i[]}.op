@@ -44,12 +44,16 @@ opcode nthbit,i,ii
   ip,inth xin 
   
   i0 = ip % 2
-  if (inth == 0) then
-    iout = i0
-  else 
-    iout = nthbit((ip-i0)/2,inth-1)
-  endif
-  xout iout 
+  if (inth == 0) goto done
+  
+  loop:
+  	ip = (ip - i0) / 2
+  	i0 = ip % 2
+  	inth -= 1
+  if (inth != 0) goto loop
+
+  done:
+  	xout i0 
 endop 
 
 opcode cue,ii,i[]i[]
