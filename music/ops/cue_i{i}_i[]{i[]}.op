@@ -52,7 +52,7 @@ opcode nthbit,i,ii
   xout iout 
 endop 
 
-pcode cue,ii,i[]i[]
+opcode cue,ii,i[]i[]
   ireps[],istems[] xin 
   
   istem = -1
