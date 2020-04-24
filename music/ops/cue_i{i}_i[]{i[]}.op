@@ -22,17 +22,23 @@ opcode cue,i,i[]ii
   xout iout
 endop 
 
+opcode sum,i,i[]
+  iarr[] xin 
+  idx = -1
+  isum = 0
+  
+  loop:
+  	idx += 1
+  	isum += iarr[idx]
+  if idx < lenarray(iarr)-1 goto loop
+
+  xout isum
+endop
+
 opcode cue,i,i[]i
   idurs[], idelay xin 
-  
-  idx = 0
-  isum = 0
-  while (idx < lenarray(idurs)) do
-    isum += idurs[idx]
-    idx += 1
-  od
- 
-  xout cue(idurs, isum, (now_tick()-1-idelay)%isum)
+  isum = sum(idurs)
+  xout cue(idurs, isum, (now_tick()-1-idelay+isum)%isum)
 endop 
 
 opcode cue,i,i[]
