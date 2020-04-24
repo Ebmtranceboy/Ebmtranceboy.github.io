@@ -1,0 +1,67 @@
+
+opcode cue,i,i[]iii
+  idurs[],istart,im,is xin
+  
+  iy = idurs[istart]
+  if (im<is+iy) then
+   iout = istart
+  else 
+   iout = cue(idurs,istart+1,im,is+iy)
+  endif
+  xout iout
+endop
+
+opcode cue,i,i[]ii
+  idurs[],isum,im xin 
+  
+  if (im >= isum) then
+    iout = cue(idurs, isum, im-isum)
+  else
+    iout = cue(idurs, 0, im, 0)
+  endif
+  xout iout
+endop 
+
+opcode cue,i,i[]i
+  idurs[], idelay xin 
+  
+  idx = 0
+  isum = 0
+  while (idx < lenarray(idurs)) do
+    isum += idurs[idx]
+    idx += 1
+  od
+ 
+  xout cue(idurs, isum, (now_tick()-1-idelay)%isum)
+endop 
+
+opcode cue,i,i[]
+  idurs[] xin 
+  xout cue(idurs, 0)
+endop
+
+opcode nthbit,i,ii
+  ip,inth xin 
+  
+  i0 = ip % 2
+  if (inth == 0) then
+    iout = i0
+  else 
+    iout = nthbit((ip-i0)/2,inth-1)
+  endif
+  xout iout 
+endop 
+
+gi_stem = -1
+
+opcode cue,ii,i[]i[]
+  ireps[],istems[] xin 
+  
+  indx = cue(ireps)
+  idx1 = cue(ireps,1)
+
+  gi_stem = (idx1 > indx ? 0 : (idx1 >= indx ? gi_stem + 1 : 0))
+  
+  xout indx, nthbit(istems[indx],gi_stem)
+endop
+ 

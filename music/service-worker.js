@@ -35,7 +35,7 @@ var filesToCache = [
   "/orcs/Vampyr.orc",
   "/orcs/VoxFM.orc",
   "/ops/arpmidi_i_iik[].op",
-  "/ops/cue_i_i[].op",
+  "/ops/cue_i{i}_i[]{i[]}.op",
   "/ops/number_of_ones_i_i.op",
   "/ops/number_of_ones_i_S.op",
   "/ops/tempo_sync_delay_aa_aa.op",
