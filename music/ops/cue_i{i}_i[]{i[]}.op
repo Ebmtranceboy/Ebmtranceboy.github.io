@@ -52,16 +52,16 @@ opcode nthbit,i,ii
   xout iout 
 endop 
 
-gi_stem = -1
-
-opcode cue,ii,i[]i[]
+pcode cue,ii,i[]i[]
   ireps[],istems[] xin 
   
+  istem = -1
   indx = cue(ireps)
-  idx1 = cue(ireps,1)
-
-  gi_stem = (idx1 > indx ? 0 : (idx1 >= indx ? gi_stem + 1 : 0))
   
-  xout indx, nthbit(istems[indx],gi_stem)
+  loop:
+  	istem += 1
+  	if cue(ireps, istem) == indx goto loop
+
+  xout indx, nthbit(istems[indx],istem-1)
 endop
  
