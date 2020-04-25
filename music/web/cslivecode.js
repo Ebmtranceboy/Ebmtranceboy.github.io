@@ -156,6 +156,31 @@ const insertMixer = () => {
   doc.replaceRange(hexCode, doc.getCursor());
 };
 
+const insertScore = () => {
+  const hexCode =
+    ";Sinstrs[],  iparameters, ivoxsteps[], ivoxes[] xin\n\n" +
+    "iv = -1\n" +
+    "ioffset = 0\n" +
+    "loop:\n" +
+  	" iv += 1\n" +
+    "	isteps = ivoxsteps[iv]\n" +
+    " ivox[] = transpact(ivoxes,ioffset,ioffset+isteps-1,iparameters)\n\n" +
+    " instrs[] =row( ivox, iparameters, isteps, 0)\n" +
+    "	ireps[] = row( ivox, iparameters, isteps, 1)\n" +
+    "	ions[] = row( ivox, iparameters, isteps, 2)\n" +
+    "	idurs[] = row( ivox, iparameters, isteps, 3)\n" +
+    "	icps[] = row( ivox, iparameters, isteps, 4)\n\n" +
+    " indx, istem = cue(ireps, ions)\n\n" +
+    "	if(istem == 1) then\n" +
+    " 	schedule(Sinstrs[instrs[indx]], 0, idurs[indx], icps[indx], -3)\n" +
+    " endif\n" +
+    "	ioffset += isteps\n" +
+    " if iv<lenarray(ivoxsteps)-1 goto loop\n";
+ 
+  const doc = editor.getDoc();
+  doc.replaceRange(hexCode, doc.getCursor());
+};
+
 let editor = null;
 
 const setupCodeMirror = () => {
@@ -180,6 +205,8 @@ const setupCodeMirror = () => {
       "Cmd-J": insertEuclidplay,
       "Ctrl-M": insertMixer,
       "Cmd-M": insertMixer,
+      "Ctrl-S": insertScore,
+      "Cmd-S": insertScore,
       "Ctrl-;": CodeMirror.commands.toggleComment,
       "Cmd-;": CodeMirror.commands.toggleComment,
       "Ctrl-Alt-C": CodeMirror.commands.toggleComment,

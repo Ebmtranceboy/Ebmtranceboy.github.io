@@ -1,0 +1,25 @@
+opcode score,0,S[]ii[]i[]
+  Sinstrs[],  iparameters, ivoxsteps[], ivoxes[] xin 
+   
+  iv = -1
+  ioffset = 0
+  loop:
+  	iv += 1
+  	isteps = ivoxsteps[iv]
+    ivox[] = transpact(ivoxes,ioffset,ioffset+isteps-1,iparameters)  
+  
+  	instrs[] =row( ivox, iparameters, isteps, 0)
+  	ireps[] = row( ivox, iparameters, isteps, 1)
+  	ions[] = row( ivox, iparameters, isteps, 2)
+  	idurs[] = row( ivox, iparameters, isteps, 3)
+  	icps[] = row( ivox, iparameters, isteps, 4)
+       
+  	indx, istem = cue(ireps, ions)
+  	
+  	if(istem == 1) then
+    		schedule(Sinstrs[instrs[indx]], 0, idurs[indx], icps[indx], -3)
+  	endif 
+  	ioffset += isteps
+  if iv<lenarray(ivoxsteps)-1 goto loop 
+endop
+  
