@@ -63,18 +63,29 @@ opcode nthbit,i,ii
 endop 
 
 opcode cue,ii,i[]i[]
-  ireps[],istems[] xin 
+  ireps[],ibits[] xin 
   
-  istem = -1
-  indx = cue(ireps)
-  
-  loop:
-  	istem += 1
-  	if cue(ireps, istem) == indx goto loop
-
-  xout indx, nthbit(istems[indx],istem-1)
-endop
-
+  if lenarray(ireps) == 1 then
+    indx = 0
+    istem = 1 + (now_tick()-1  + ireps[0]) % ireps[0]
+  else
+ 
+    indx = cue(ireps)
+    istem = -1
+    loop:
+      istem += 1
+      if cue(ireps, istem) == indx goto loop
+   endif 
+    
+   if istem > 0 then
+     ibit = nthbit(ibits[indx],istem-1)
+   else
+	ibit = 0
+   endif
+        
+  xout indx, ibit
+ endop
+ 
 opcode row,i[],i[]iii
   iarr[],irow,icol,ir xin 
   
