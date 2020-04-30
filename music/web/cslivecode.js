@@ -158,7 +158,7 @@ const insertMixer = () => {
 
 const insertScore = () => {
   const hexCode =
-    ";Sinstrs[],  iparameters, ivoxsteps[], ivoxes[] xin\n\n" +
+    ";Sinstrs[], ivoxes[], ivoxsteps[], itriggers[], iparameters xin\n\n" +
     "iv = -1\n" +
     "ioffset = 0\n" +
     "loop:\n" +
@@ -169,9 +169,18 @@ const insertScore = () => {
     "	ireps[] = row( ivox, iparameters, isteps, 1)\n" +
     "	ions[] = row( ivox, iparameters, isteps, 2)\n" +
     "	idurs[] = row( ivox, iparameters, isteps, 3)\n" +
-    "	icps[] = row( ivox, iparameters, isteps, 4)\n\n" +
+    "	icps[] = row( ivox, iparameters, isteps, 4)\n" +
+    "	ibus[] = row( ivox, iparameters, isteps, 5)\n\n" +
     " indx, istem = cue(ireps, ions)\n\n" +
-    "	if(istem == 1) then\n" +
+    " isum = sum(ireps)\n" +
+    " itndx = (now_tick() - now_tick() % isum) / isum\n" +
+    " if itndx < lenarray(itriggers) then\n" +
+    "   ischeme = itriggers[itndx]\n" +
+    "  	iplay = nthbit(ischeme, iv)\n" +
+    " else \n" +
+    "   iplay = 0\n"
+    " endif\n\n" +
+    "	if(istem == 1 && iplay == 1) then\n" +
     " 	schedule(Sinstrs[instrs[indx]], 0, idurs[indx], icps[indx], -3)\n" +
     " endif\n" +
     "	ioffset += isteps\n" +

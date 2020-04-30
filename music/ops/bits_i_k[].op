@@ -1,0 +1,12 @@
+opcode bits,i,k[]
+  kbits[] xin 
+  indx =  lenarray(kbits) - 1
+  inb = 0
+  loop:
+    if indx <= -1 goto done
+  	inb = inb * 2 + i(kbits,indx)
+  	indx -= 1
+  	goto loop
+  done:
+  	xout inb
+endop

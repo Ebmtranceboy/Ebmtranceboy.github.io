@@ -115,8 +115,8 @@ opcode transpact,i[],i[]iii
   xout itrp
 endop 
 
-opcode score,0,S[]i[]i[]j
-  Sinstrs[], ivoxsteps[], ivoxes[], iparameters xin 
+opcode score,0,S[]i[]i[]i[]j
+  Sinstrs[], ivoxsteps[], ivoxes[], itriggers[], iparameters xin 
    
   if iparameters < 0 then
     iparameters = 6
@@ -137,8 +137,18 @@ opcode score,0,S[]i[]i[]j
   	ibus[] = row( ivox, iparameters, isteps, 5)
        
   	indx, istem = cue(ireps, ions)
+  	indx, istem = cue(ireps, ions)
   	
-  	if(istem == 1) then
+  	isum = sum(ireps)
+    itndx = (now_tick() - now_tick() % isum) / isum
+    if itndx < lenarray(itriggers) then
+  		ischeme = itriggers[itndx]
+      	iplay = nthbit(ischeme, iv)
+    else 
+      iplay = 0
+    endif
+  	
+  	if(istem == 1 && iplay == 1) then
     		schedule(Sinstrs[instrs[indx]], 0, idurs[indx], icps[indx], ibus[indx])
   	endif 
   	ioffset += isteps
