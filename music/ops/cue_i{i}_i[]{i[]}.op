@@ -122,11 +122,26 @@ opcode score,0,S[]i[]i[]i[]j
     iparameters = 6
   endif
   
+  
+  iv = -1
+  ioffset = 0
+  imax = 0
+  loop1:
+  	iv += 1
+    isteps = abs(ivoxsteps[iv])
+    ivox[] = transpact(ivoxes,ioffset,ioffset+isteps-1,iparameters)  
+  	ireps[] = row( ivox, iparameters, isteps, 1)
+  	if imax < sum(ireps) then
+      imax = sum(ireps)
+    endif 
+  	if iv<lenarray(ivoxsteps)-1 goto loop1
+     
+  
   iv = -1
   ioffset = 0
   loop:
   	iv += 1
-  	isteps = ivoxsteps[iv]
+  	isteps = abs(ivoxsteps[iv])
     ivox[] = transpact(ivoxes,ioffset,ioffset+isteps-1,iparameters)  
   
   	instrs[] =row( ivox, iparameters, isteps, 0)
@@ -139,7 +154,7 @@ opcode score,0,S[]i[]i[]i[]j
   	indx, istem = cue(ireps, ions)
   	indx, istem = cue(ireps, ions)
   	
-  	isum = sum(ireps)
+  	isum = (ivoxsteps[iv] < 0 ? imax : sum(ireps))
     itndx = (now_tick() - now_tick() % isum) / isum
     if itndx < lenarray(itriggers) then
   		ischeme = itriggers[itndx]
