@@ -10,6 +10,6 @@ instr Naive
   aenv linsegr 0,abs(p3)/200,1,0.5,0
   aout = aenv*(asig1+asig3/3+asig5/5)/10
 
-  sbus_mix(p5 aout, aout)
+  sbus_mix(p5, aout, aout)
 endin
 
