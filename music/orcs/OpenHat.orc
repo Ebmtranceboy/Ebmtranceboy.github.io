@@ -16,7 +16,7 @@ instr OpenHat
 
   asig = asgnp*(istrh*adel+(1-istrh)*asig)
 
-  sbus_mix(p5, aout, aout)
+  sbus_mix(p5, asig, asig)
 
 endin
 
