@@ -1,8 +1,17 @@
 gi_fusion_saw ftgen 0,0,8192,7,1,2048,-1,0,1,2048,-1,0,1,2048,-1,0,1,2048,-1
 gi_fusion_wn ftgen 0,0,8192,20,2,1
 
+chn_k "Fusion.grains", 3, 1, 5, 1, 20
+
+;instr Mod
+;	klfo lfo 8.2, 0.1
+; chnset int(abs(klfo*20)), "Fusion.grains"
+;endin
+
+;start("Mod")
+
 instr Fusion
-  imaj_grains = xchan:i("Fusion.grains", 5)
+  imaj_grains changet "Fusion.grains"
   
   ifn ftgen 0,0,8192,-30,gi_fusion_saw,1,(imaj_grains+10)*80
 

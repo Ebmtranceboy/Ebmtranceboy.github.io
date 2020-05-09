@@ -1,6 +1,8 @@
+chn_k "GranularFormant.ktrl", 3, 2, 1, 0, 1
+
 ;instr Mod
-;	gklfo lfo 8.2,0.1
-;	xchnset("GranularFormant.ktrl",12.9)
+;	klfo lfo 8.2, 0.1
+;	chnset 0.5+klfo, "GranularFormant.ktrl"
 ;endin
 
 ;start("Mod")
@@ -9,7 +11,7 @@ gi_GranularFormant_fn ftgen 0,0,256,2,0
 gi_GranularFormant_wfn ftgen 0,0,256,20,6,1,1
 
 instr GranularFormant
-    ktrl = xchan:k("GranularFormant.ktrl",1.0)
+    ktrl chnget "GranularFormant.ktrl"
     isize = 256
 
     kfreq lfo 0.25,0.02
