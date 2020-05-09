@@ -11,7 +11,7 @@ chn_k "Fusion.grains", 3, 1, 5, 1, 20
 ;start("Mod")
 
 instr Fusion
-  imaj_grains changet "Fusion.grains"
+  imaj_grains chnget "Fusion.grains"
   
   ifn ftgen 0,0,8192,-30,gi_fusion_saw,1,(imaj_grains+10)*80
 
