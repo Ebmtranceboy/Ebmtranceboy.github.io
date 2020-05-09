@@ -1,6 +1,6 @@
 instr PhaseAlignedFormant
   icps = p4
-  kamp linsegr 0.01, 0.3, 0
+  kamp linsegr 0.01, p3, 0
   kformant linseg 2*icps, 1, 6*icps
   kbw linseg 1000, 0.33, 100, 0.33, 500, 0.33, 100
 
