@@ -40,6 +40,7 @@ var filesToCache = [
   "/ops/number_of_ones_i_S.op",
   "/ops/score,0,S[]i[]i[]i[]j.op",
   "/ops/tempo_sync_delay_aa_aa.op",
+  "/web/images/icons/icon-144x144.png",
   "/web/codemirror.css",
   "/web/theme/monokai.css",
   "/web/cslivecode.css",
