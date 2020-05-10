@@ -41,7 +41,7 @@ opcode hs_sinebuzz,a,kkk
   if(kphi1&gt;kphi) then
   kphase = kphase -(krat-kirat)
   endif
-  if (kphase&lt;0)then
+  if (kphase<0)then
   kphase=kphase+1
   endif
   aout sinebuzz kslave,kbright,kphase
