@@ -1,0 +1,49 @@
+opcode sinebuzz,a,KKK
+  kcps,kbright,kphase xin
+  setksmps	 1
+
+  kN = kbright*sr / (2*kcps)
+  kN0 = int(kN)
+  kN1 = kN0 + 1
+  ka = kN - kN0
+
+  aun init 1
+
+  at phasor kcps
+
+  ; without table
+  ;adiv divz (1-ka)*sin((2*kN0+1)*at*$M_PI)+ka*sin((2*kN1+1)*at*$M_PI), sin(at*$M_PI), 2*kN+1
+
+  ; with sine table
+  anum0 tablei (2*kN0+1)*(at+kphase)/2,-1,1,0,1
+  anum1 tablei (2*kN1+1)*(at+kphase)/2,-1,1,0,1
+  aden tablei (at+kphase)/2,-1,1,0,1
+  adiv divz (1-ka)*anum0+ka*anum1,aden,2*kN+1
+
+  abuzz = (adiv-aun)/kN/2
+
+  ;adeclick linsegr 0,0.01,0,0.01,1,0.01,0
+  xout abuzz
+endop
+
+opcode hs_sinebuzz,a,kkk
+  kmaster, krat, kbright xin
+  setksmps 2
+
+  kirat = int(krat)
+  kslave = krat*kmaster
+  kphase init 0
+  kphi init 0
+
+  kphi1 = kphi
+  kphi phasor kmaster
+
+  if(kphi1&gt;kphi) then
+  kphase = kphase -(krat-kirat)
+  endif
+  if (kphase&lt;0)then
+  kphase=kphase+1
+  endif
+  aout sinebuzz kslave,kbright,kphase
+  xout aout
+endop

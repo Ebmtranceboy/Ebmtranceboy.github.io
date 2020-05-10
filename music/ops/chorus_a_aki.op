@@ -1,0 +1,41 @@
+opcode chorus,a,aki
+  ain, kwet, idpth xin
+  setksmps 1
+  ;usage example:
+  ;kwet linseg 0,0.5,0.7
+  ;achorus chorus asaw, kwet, 0.005
+
+
+  ilevl		=		.3		; Output level
+  imax		=		0.156	; Maximum LFO rate
+  imin		=		0.006	; Minimum LFO rate
+  idelay		=		idpth * 2 + .01;imax;(idpth *2) + .01
+
+  idiff		=		imax-imin
+
+  ain             =               ain * ilevl
+  i01             =               rnd(idiff)
+  i02             =               rnd(idiff)
+  i03             =               rnd(idiff)
+  i04             =               rnd(idiff)
+  i05             =               rnd(idiff)
+  i06             =               rnd(idiff)
+  alfo01          oscil           idpth, i01 + imin, -1
+  alfo02          oscil           idpth, i02 + imin, -1, .08
+  alfo03          oscil           idpth, i03 + imin, -1, .17
+  alfo04          oscil           idpth, i04 + imin, -1, .25
+  alfo05          oscil           idpth, i05 + imin, -1, .33
+  alfo06          oscil           idpth, i06 + imin, -1, .42
+  atemp           delayr          idelay * 2
+  a01             deltapi         idelay + alfo01
+  a02             deltapi         idelay + alfo02
+  a03             deltapi         idelay + alfo03
+  a04             deltapi         idelay + alfo04
+  a05             deltapi         idelay + alfo05
+  a06             deltapi         idelay + alfo06
+                  delayw          ain
+  achorus        sum		a01, a02, a03, a04, a05, a06
+
+  aout		=		ain * (1-kwet) + achorus * kwet
+  xout aout
+endop
