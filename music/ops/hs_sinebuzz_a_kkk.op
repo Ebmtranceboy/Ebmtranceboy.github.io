@@ -38,7 +38,7 @@ opcode hs_sinebuzz,a,kkk
   kphi1 = kphi
   kphi phasor kmaster
 
-  if(kphi1&gt;kphi) then
+  if(kphi1>kphi) then
   kphase = kphase -(krat-kirat)
   endif
   if (kphase<0)then
