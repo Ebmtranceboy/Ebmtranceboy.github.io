@@ -1,0 +1,10 @@
+opcode casio_rez1,a,ik
+  imaster,kwet xin
+  khs = 1/(1-kwet)
+  kslave = khs * imaster
+  anosync init 0
+  aphm,areset syncphasor imaster,anosync
+  aphs, asyncout syncphasor kslave, areset
+  asine table aphs,-1,1,0.75,1
+  xout (1-aphm)*(1+asine)
+endin

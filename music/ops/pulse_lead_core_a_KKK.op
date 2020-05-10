@@ -1,0 +1,47 @@
+opcode fm_saw,a,kk 
+  kcps,kbright xin
+  setksmps 1
+
+  kw = kcps/sr ; normalized freq
+  kscale = kbright*6.5*(0.5-kw)^4
+  kdc = 0.376-0.752*kw
+  knorm = 1 - 2*kw
+
+  asaw init 0
+  asaw1 init 0
+
+  kph phasor kcps
+
+  asin tablei kph+asaw*kscale,-1,1,0,1
+  asaw = (asaw+asin)/2
+  aout = 2.5*asaw-1.5*asaw1
+  asaw1 = asaw
+
+  adeclick linsegr 1,0.01,0
+  xout adeclick*knorm*(aout+kdc)
+endop
+
+opcode fm_pulse,a,KKK 
+  kcps, kbright, krat xin
+  setksmps	 2
+
+  asaw fm_saw kcps,kbright
+
+  adummy delayr 0.5
+  adel deltap krat/kcps
+  delayw asaw
+
+  apulse = asaw - adel
+  adeclick linsegr 0,0.01,1, 0.01,0
+  xout adeclick*apulse
+endop
+
+opcode pulse_lead_core,a,KKK 
+  kcps,kbright0, krat0 xin
+  setksmps 4
+  kbright port kbright0, 0.005
+  krat port krat0, 0.005
+  ;ay FMbuzz kcps,kbright
+  ay fm_pulse kcps,kbright,krat
+  xout ay
+endop
