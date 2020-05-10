@@ -1,4 +1,4 @@
-instr Saw
+instr PulseSaw
   iamp = 0.5
   iwet = 0.7
   
