@@ -7,4 +7,4 @@ opcode casio_rez1,a,ik
   aphs, asyncout syncphasor kslave, areset
   asine table aphs,-1,1,0.75,1
   xout (1-aphm)*(1+asine)
-endin
+endop
