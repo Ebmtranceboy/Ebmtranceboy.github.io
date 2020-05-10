@@ -65,7 +65,6 @@ var filesToCache = [
   "/ops/bits_i_k[].op",
   "/ops/casio_rez1_a_ik.op",
   "/ops/chorus_a_aki.op",
-  "/ops/dckill_a_a.op",
   "/ops/hs_sinebuzz_a_kkk.op",
   "/ops/number_of_ones_i_i.op",
   "/ops/number_of_ones_i_S.op",
