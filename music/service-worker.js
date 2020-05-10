@@ -48,6 +48,7 @@ var filesToCache = [
   "/orcs/Resonance1.orc",
   "/orcs/ResonantPad.orc",
   "/orcs/RiseAndFallPad.orc",
+  "/orcs/Saw.orc",
   "/orcs/Sbire.orc",
   "/orcs/Shyish.orc",
   "/orcs/Snare.orc",
