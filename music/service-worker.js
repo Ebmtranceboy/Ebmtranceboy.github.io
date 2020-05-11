@@ -69,6 +69,7 @@ var filesToCache = [
   "/ops/hs_sinebuzz_a_kkk.op",
   "/ops/number_of_ones_i_i.op",
   "/ops/number_of_ones_i_S.op",
+  "/ops/pitch_shifter_a_akii.op",
   "/ops/pm_sine_a_kk.op",
   "/ops/pulse_lead_core_a_KKK.op",
   "/ops/saw_a_kk.op",

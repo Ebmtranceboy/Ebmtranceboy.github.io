@@ -1,0 +1,21 @@
+opcode pitch_shifter,a,akii
+
+ setksmps 	1 ; kr=sr 
+ asig,knsemis,imaxdel,ifnwin xin 
+ kfract    =         knsemis/12          ; FRACTION OF AN OCTAVE
+ kbasehz   =         cpsoct(8)           ; USE MIDDLE C AS BASIS
+ knewhz    =         cpsoct(8+kfract)    ; REL FREQ OF NEW PITCH
+ kratio    =         knewhz/kbasehz      ; RATIO NEW HZ TO OLD
+  kdelrate 		= 		(kratio-1)/imaxdel 
+  avdel 		phasor 		-kdelrate ; 1 to 0 
+  avdel2 		phasor 		-kdelrate, 0.5 ; 1/2 buffer offset 
+  afade 		tablei 		avdel, ifnwin, 1, 0, 1 ; crossfade windows (triangle : f 1 0   513 20  3)
+  afade2 		tablei 		avdel2,ifnwin, 1, 0, 1 
+  
+  adump 		delayr 		imaxdel 
+  atap1 		deltapi 	avdel*imaxdel ; variable delay taps 
+  atap2 		deltapi 	avdel2*imaxdel 
+  amix 			= 		atap1*afade + atap2*afade2 ; fade in/out the delay taps 
+			delayw 		asig 
+			xout  		amix 
+endop
