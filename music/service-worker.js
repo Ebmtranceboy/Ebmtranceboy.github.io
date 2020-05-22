@@ -56,6 +56,7 @@ var filesToCache = [
   "/orcs/Snobby.orc",
   "/orcs/Spine.orc",
   "/orcs/StringSection.orc",
+  "/orcs/StretchDrum.orc",
   "/orcs/Supersaw.orc",
   "/orcs/Tales.orc",
   "/orcs/ThinPad.orc",
