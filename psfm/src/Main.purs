@@ -16,16 +16,16 @@ import Data.Map (fromFoldable)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Number (infinity)
 import Data.Number.Format (toStringWith, fixed)
-import Data.Sparse.Matrix (Matrix(..), (^))
 import Data.String (drop, split, trim, Pattern(..), joinWith)
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Handles (_type, onChange, onClick) as P
+import ML.LinAlg (predict, input, output)
 import Math (exp, pow)
-import Nodes (label, text, div', input, button) as D
+import Nodes (label, text, div', input, button, pre) as D
 import Numeric.Calculus (Signal1D, Signal2D, differentiate, laplacian)
-import PRNG ((!!)) 
+import PRNG ((!!))
 import Parser.Eval (eval)
 import Parser.Parser (parse)
 import Parser.Syntax (Dual(..), Expr(..), tanh)
@@ -113,9 +113,6 @@ f3 = alteredNumberSystem "x1+1.0, x2+2.0, 3" (deepRename "x2" "x1") :: System Nu
 
 system3 :: System Number
 system3 = source3 >>> f3 >>> mixer3
-
-m1 = Matrix {width: 2, height: 3, coefficients: 1.0^0^0+2.0^1^1+3.0^2^1} :: Matrix Number
-m2 = Matrix {height: 3, width: 2, coefficients: 4.0^0^0+5.0^1^1+6.0^2^1} :: Matrix Number
 
 class Formatted a where
   showWithFormat :: Int -> a -> String
@@ -233,6 +230,7 @@ readWiget st = do
     , D.label [] [D.text $  (show $ extremums st.signal.samples) <> (show $ extremums st.diff.samples)]
     , D.button [(const $ st{sig2D = st.sig2D `add2D` scl2D epsilon (laplacian st.sig2D)}) <$> P.onClick]
                 [D.text "Iterate"]
+    , D.pre [D.text $ show $ predict input output]
     , S.svg
         [ S.width "1280"
         , S.height "768"

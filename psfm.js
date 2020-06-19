@@ -26753,6 +26753,7 @@ var PS = {};
   var Data_Foldable = $PS["Data.Foldable"];
   var Data_FoldableWithIndex = $PS["Data.FoldableWithIndex"];
   var Data_Function = $PS["Data.Function"];
+  var Data_Functor = $PS["Data.Functor"];
   var Data_List_Lazy = $PS["Data.List.Lazy"];
   var Data_List_Lazy_Types = $PS["Data.List.Lazy.Types"];
   var Data_List_Types = $PS["Data.List.Types"];
@@ -27050,7 +27051,33 @@ var PS = {};
           };
           return go;
       };
-  }; 
+  };
+  var keys = function (v) {
+      if (v instanceof Leaf) {
+          return Data_List_Types.Nil.value;
+      };
+      if (v instanceof Two) {
+          return Data_Semigroup.append(Data_List_Types.semigroupList)(keys(v.value0))(Data_Semigroup.append(Data_List_Types.semigroupList)(Control_Applicative.pure(Data_List_Types.applicativeList)(v.value1))(keys(v.value3)));
+      };
+      if (v instanceof Three) {
+          return Data_Semigroup.append(Data_List_Types.semigroupList)(keys(v.value0))(Data_Semigroup.append(Data_List_Types.semigroupList)(Control_Applicative.pure(Data_List_Types.applicativeList)(v.value1))(Data_Semigroup.append(Data_List_Types.semigroupList)(keys(v.value3))(Data_Semigroup.append(Data_List_Types.semigroupList)(Control_Applicative.pure(Data_List_Types.applicativeList)(v.value4))(keys(v.value6)))));
+      };
+      throw new Error("Failed pattern match at Data.Map.Internal (line 606, column 1 - line 606, column 38): " + [ v.constructor.name ]);
+  };
+  var functorMap = new Data_Functor.Functor(function (v) {
+      return function (v1) {
+          if (v1 instanceof Leaf) {
+              return Leaf.value;
+          };
+          if (v1 instanceof Two) {
+              return new Two(Data_Functor.map(functorMap)(v)(v1.value0), v1.value1, v(v1.value2), Data_Functor.map(functorMap)(v)(v1.value3));
+          };
+          if (v1 instanceof Three) {
+              return new Three(Data_Functor.map(functorMap)(v)(v1.value0), v1.value1, v(v1.value2), Data_Functor.map(functorMap)(v)(v1.value3), v1.value4, v(v1.value5), Data_Functor.map(functorMap)(v)(v1.value6));
+          };
+          throw new Error("Failed pattern match at Data.Map.Internal (line 96, column 1 - line 99, column 110): " + [ v.constructor.name, v1.constructor.name ]);
+      };
+  });
   var fromZipper = function ($copy_dictOrd) {
       return function ($copy_v) {
           return function ($copy_tree) {
@@ -27475,6 +27502,43 @@ var PS = {};
           };
       };
   });
+  var findMin = (function () {
+      var go = function ($copy_v) {
+          return function ($copy_v1) {
+              var $tco_var_v = $copy_v;
+              var $tco_done = false;
+              var $tco_result;
+              function $tco_loop(v, v1) {
+                  if (v1 instanceof Leaf) {
+                      $tco_done = true;
+                      return v;
+                  };
+                  if (v1 instanceof Two) {
+                      $tco_var_v = new Data_Maybe.Just({
+                          key: v1.value1,
+                          value: v1.value2
+                      });
+                      $copy_v1 = v1.value0;
+                      return;
+                  };
+                  if (v1 instanceof Three) {
+                      $tco_var_v = new Data_Maybe.Just({
+                          key: v1.value1,
+                          value: v1.value2
+                      });
+                      $copy_v1 = v1.value0;
+                      return;
+                  };
+                  throw new Error("Failed pattern match at Data.Map.Internal (line 297, column 5 - line 297, column 22): " + [ v.constructor.name, v1.constructor.name ]);
+              };
+              while (!$tco_done) {
+                  $tco_result = $tco_loop($tco_var_v, $copy_v1);
+              };
+              return $tco_result;
+          };
+      };
+      return go(Data_Maybe.Nothing.value);
+  })();
   var eqMap = function (dictEq) {
       return function (dictEq1) {
           return new Data_Eq.Eq(function (m1) {
@@ -27543,6 +27607,25 @@ var PS = {};
           };
       };
   });
+  var mapMaybeWithKey = function (dictOrd) {
+      return function (f) {
+          return Data_FoldableWithIndex.foldrWithIndex(foldableWithIndexMap)(function (k) {
+              return function (a) {
+                  return function (acc) {
+                      return Data_Maybe.maybe(acc)(function (b) {
+                          return insert(dictOrd)(k)(b)(acc);
+                      })(f(k)(a));
+                  };
+              };
+          })(empty);
+      };
+  };
+  var mapMaybe = function (dictOrd) {
+      var $765 = mapMaybeWithKey(dictOrd);
+      return function ($766) {
+          return $765(Data_Function["const"]($766));
+      };
+  }; 
   var alter = function (dictOrd) {
       return function (f) {
           return function (k) {
@@ -27582,12 +27665,31 @@ var PS = {};
   exports["singleton"] = singleton;
   exports["insert"] = insert;
   exports["lookup"] = lookup;
+  exports["findMin"] = findMin;
   exports["fromFoldable"] = fromFoldable;
   exports["toUnfoldable"] = toUnfoldable;
+  exports["keys"] = keys;
   exports["unionWith"] = unionWith;
   exports["filter"] = filter;
+  exports["mapMaybe"] = mapMaybe;
   exports["eqMap"] = eqMap;
+  exports["functorMap"] = functorMap;
   exports["foldableWithIndexMap"] = foldableWithIndexMap;
+})(PS);
+(function($PS) {
+  // Generated by purs version 0.13.8
+  "use strict";
+  $PS["Data.Map"] = $PS["Data.Map"] || {};
+  var exports = $PS["Data.Map"];
+  var Data_Functor = $PS["Data.Functor"];
+  var Data_Map_Internal = $PS["Data.Map.Internal"];                
+  var keys = (function () {
+      var $0 = Data_Functor["void"](Data_Map_Internal.functorMap);
+      return function ($1) {
+          return $0($1);
+      };
+  })();
+  exports["keys"] = keys;
 })(PS);
 (function($PS) {
   // Generated by purs version 0.13.8
@@ -27669,6 +27771,66 @@ var PS = {};
 (function($PS) {
   // Generated by purs version 0.13.8
   "use strict";
+  $PS["Data.Set"] = $PS["Data.Set"] || {};
+  var exports = $PS["Data.Set"];
+  var Data_Foldable = $PS["Data.Foldable"];
+  var Data_Functor = $PS["Data.Functor"];
+  var Data_List_Types = $PS["Data.List.Types"];
+  var Data_Map_Internal = $PS["Data.Map.Internal"];
+  var Data_Maybe = $PS["Data.Maybe"];
+  var Data_Unit = $PS["Data.Unit"];
+  var toList = function (v) {
+      return Data_Map_Internal.keys(v);
+  };
+  var insert = function (dictOrd) {
+      return function (a) {
+          return function (v) {
+              return Data_Map_Internal.insert(dictOrd)(a)(Data_Unit.unit)(v);
+          };
+      };
+  };
+  var foldableSet = new Data_Foldable.Foldable(function (dictMonoid) {
+      return function (f) {
+          var $65 = Data_Foldable.foldMap(Data_List_Types.foldableList)(dictMonoid)(f);
+          return function ($66) {
+              return $65(toList($66));
+          };
+      };
+  }, function (f) {
+      return function (x) {
+          var $67 = Data_Foldable.foldl(Data_List_Types.foldableList)(f)(x);
+          return function ($68) {
+              return $67(toList($68));
+          };
+      };
+  }, function (f) {
+      return function (x) {
+          var $69 = Data_Foldable.foldr(Data_List_Types.foldableList)(f)(x);
+          return function ($70) {
+              return $69(toList($70));
+          };
+      };
+  });
+  var findMin = function (v) {
+      return Data_Functor.map(Data_Maybe.functorMaybe)(function (v1) {
+          return v1.key;
+      })(Data_Map_Internal.findMin(v));
+  }; 
+  var empty = Data_Map_Internal.empty;
+  var map = function (dictOrd) {
+      return function (f) {
+          return Data_Foldable.foldl(foldableSet)(function (m) {
+              return function (a) {
+                  return insert(dictOrd)(f(a))(m);
+              };
+          })(empty);
+      };
+  };
+  exports["findMin"] = findMin;
+})(PS);
+(function($PS) {
+  // Generated by purs version 0.13.8
+  "use strict";
   $PS["Data.Sparse.Polynomial"] = $PS["Data.Sparse.Polynomial"] || {};
   var exports = $PS["Data.Sparse.Polynomial"];
   var Data_Eq = $PS["Data.Eq"];
@@ -27676,6 +27838,7 @@ var PS = {};
   var Data_FoldableWithIndex = $PS["Data.FoldableWithIndex"];
   var Data_Functor = $PS["Data.Functor"];
   var Data_Map_Internal = $PS["Data.Map.Internal"];
+  var Data_Maybe = $PS["Data.Maybe"];
   var Data_Ord = $PS["Data.Ord"];
   var Data_Semiring = $PS["Data.Semiring"];
   var Data_Unfoldable = $PS["Data.Unfoldable"];
@@ -27712,12 +27875,26 @@ var PS = {};
               };
           }, Poly.create(Data_Map_Internal.singleton(0)(Data_Semiring.one(dictSemiring))), new Poly(Data_Map_Internal.empty));
       };
+  }; 
+  var query = function (dictSemiring) {
+      return function (v) {
+          return function (n) {
+              return Data_Maybe.fromMaybe(Data_Semiring.zero(dictSemiring))(Data_Map_Internal.lookup(Data_Ord.ordInt)(n)(v.value0));
+          };
+      };
   };                                                         
   var monoPol = function (x) {
       return function (n) {
           return Poly.create(Data_Map_Internal.insert(Data_Ord.ordInt)(n)(x)(Data_Map_Internal.empty));
       };
-  };
+  };                                                                                           
+  var functorPoly = new Data_Functor.Functor(function (f) {
+      return function (v) {
+          return Poly.create(Data_Map_Internal.mapMaybe(Data_Ord.ordInt)(function (v1) {
+              return Data_Maybe.Just.create(f(v1));
+          })(v.value0));
+      };
+  });
   var eqPoly = function (dictEq) {
       return new Data_Eq.Eq(function (v) {
           return function (v1) {
@@ -27725,8 +27902,11 @@ var PS = {};
           };
       });
   };
+  exports["Poly"] = Poly;
   exports["monoPol"] = monoPol;
+  exports["query"] = query;
   exports["eqPoly"] = eqPoly;
+  exports["functorPoly"] = functorPoly;
   exports["semiringPoly"] = semiringPoly;
 })(PS);
 (function($PS) {
@@ -27734,9 +27914,253 @@ var PS = {};
   "use strict";
   $PS["Data.Sparse.Matrix"] = $PS["Data.Sparse.Matrix"] || {};
   var exports = $PS["Data.Sparse.Matrix"];
+  var Data_Array = $PS["Data.Array"];
+  var Data_Boolean = $PS["Data.Boolean"];
+  var Data_Foldable = $PS["Data.Foldable"];
+  var Data_Functor = $PS["Data.Functor"];
+  var Data_Map = $PS["Data.Map"];
+  var Data_Map_Internal = $PS["Data.Map.Internal"];
+  var Data_Maybe = $PS["Data.Maybe"];
+  var Data_Ord = $PS["Data.Ord"];
+  var Data_Ring = $PS["Data.Ring"];
+  var Data_Semigroup = $PS["Data.Semigroup"];
+  var Data_Semiring = $PS["Data.Semiring"];
+  var Data_Set = $PS["Data.Set"];
+  var Data_Show = $PS["Data.Show"];
   var Data_Sparse_Polynomial = $PS["Data.Sparse.Polynomial"];
+  var Data_Tuple = $PS["Data.Tuple"];
+  var Data_Unfoldable = $PS["Data.Unfoldable"];
+  var Data_Unit = $PS["Data.Unit"];
+  var width = function (v) {
+      return v.width;
+  };
   var monoPol = Data_Sparse_Polynomial.monoPol;
+  var internalMap = function (v) {
+      return v.value0;
+  };
+  var parseMonom = function (dictEq) {
+      return function (dictSemiring) {
+          return function (v) {
+              var j = Data_Maybe.fromMaybe(-1 | 0)(Data_Set.findMin(Data_Map.keys(v.value0)));
+              var i = Data_Maybe.fromMaybe(-1 | 0)(Data_Set.findMin(Data_Map.keys(internalMap(Data_Sparse_Polynomial.query(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring))(v)(j)))));
+              var $93 = i < 0 || j < 0;
+              if ($93) {
+                  return Data_Maybe.Nothing.value;
+              };
+              return new Data_Maybe.Just({
+                  i: i,
+                  j: j,
+                  v: Data_Sparse_Polynomial.query(dictSemiring)(Data_Sparse_Polynomial.query(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring))(v)(j))(i)
+              });
+          };
+      };
+  };
+  var semiringMatrix = function (dictEq) {
+      return function (dictSemiring) {
+          return new Data_Semiring.Semiring(function (v) {
+              return function (v1) {
+                  return {
+                      height: Data_Ord.max(Data_Ord.ordInt)(v.height)(v1.height),
+                      width: Data_Ord.max(Data_Ord.ordInt)(v.width)(v1.width),
+                      coefficients: Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(dictEq))(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring)))(v.coefficients)(v1.coefficients)
+                  };
+              };
+          }, function (v) {
+              return function (v1) {
+                  var coefficients = Data_Foldable.sum(Data_Foldable.foldableArray)(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(dictEq))(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring)))(Data_Functor.map(Data_Functor.functorArray)(function (v2) {
+                      return (function (v3) {
+                          return monoPol(v3)(v2.value0);
+                      })(Data_Foldable.sum(Data_Foldable.foldableArray)(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring))(Data_Functor.map(Data_Functor.functorArray)(function (v3) {
+                          return Data_Sparse_Polynomial.Poly.create(Data_Map_Internal.fromFoldable(Data_Ord.ordInt)(Data_Foldable.foldableArray)(Data_Functor.map(Data_Functor.functorArray)(function (v5) {
+                              return new Data_Tuple.Tuple(v5.value0, Data_Semiring.mul(dictSemiring)(v5.value1)(v3.value1));
+                          })(Data_Map_Internal.toUnfoldable(Data_Unfoldable.unfoldableArray)(internalMap(Data_Sparse_Polynomial.query(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring))(v.coefficients)(v3.value0))))));
+                      })(Data_Map_Internal.toUnfoldable(Data_Unfoldable.unfoldableArray)(v2.value1.value0))));
+                  })(Data_Map_Internal.toUnfoldable(Data_Unfoldable.unfoldableArray)(v1.coefficients.value0)));
+                  return {
+                      height: v.height,
+                      width: v1.width,
+                      coefficients: coefficients
+                  };
+              };
+          }, {
+              height: 1,
+              width: 1,
+              coefficients: Data_Semiring.one(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(dictEq))(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring)))
+          }, {
+              height: 1,
+              width: 1,
+              coefficients: Data_Semiring.zero(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(dictEq))(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring)))
+          });
+      };
+  };
+  var height = function (v) {
+      return v.height;
+  };
+  var functorMatrix = new Data_Functor.Functor(function (f) {
+      return function (v) {
+          return {
+              height: v.height,
+              width: v.width,
+              coefficients: Data_Functor.map(Data_Sparse_Polynomial.functorPoly)(Data_Functor.map(Data_Sparse_Polynomial.functorPoly)(f))(v.coefficients)
+          };
+      };
+  });
+  var ringMatrix = function (dictEq) {
+      return function (dictRing) {
+          return new Data_Ring.Ring(function () {
+              return semiringMatrix(dictEq)(dictRing.Semiring0());
+          }, function (a) {
+              return function (b) {
+                  return Data_Semiring.add(semiringMatrix(dictEq)(dictRing.Semiring0()))(a)(Data_Functor.map(functorMatrix)(function (v) {
+                      return Data_Semiring.mul(dictRing.Semiring0())(v)(Data_Ring.negate(dictRing)(Data_Semiring.one(dictRing.Semiring0())));
+                  })(b));
+              };
+          });
+      };
+  };
+  var extract = function (dictEq) {
+      return function (dictSemiring) {
+          return function (v) {
+              return function (v1) {
+                  if (v1.length === 2) {
+                      return Data_Sparse_Polynomial.query(dictSemiring)(Data_Sparse_Polynomial.query(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictSemiring))(v.coefficients)(v1[1]))(v1[0]);
+                  };
+                  return Data_Semiring.zero(dictSemiring);
+              };
+          };
+      };
+  };
+  var replace = function (dictEq) {
+      return function (dictSemiring) {
+          return function (dictRing) {
+              return function (r) {
+                  return function (v) {
+                      return Data_Maybe.maybe(v)(function (v1) {
+                          return Data_Semiring.add(semiringMatrix(dictEq)(dictRing.Semiring0()))(v)({
+                              height: v.height,
+                              width: v.width,
+                              coefficients: monoPol(monoPol(Data_Ring.sub(dictRing)(v1.v)(extract(dictEq)(dictRing.Semiring0())(v)([ v1.i, v1.j ])))(v1.i))(v1.j)
+                          });
+                      })(parseMonom(dictEq)(dictRing.Semiring0())(r));
+                  };
+              };
+          };
+      };
+  };
+  var showMatrix = function (dictShow) {
+      return function (dictSemiring) {
+          return function (dictEq) {
+              return new Data_Show.Show(function (v) {
+                  var isHidJ = function (j) {
+                      return v.width > 6 && (j > 3 && j < (v.width - 3 | 0));
+                  };
+                  var isHidI = function (i) {
+                      return v.height > 6 && (i > 3 && i < (v.height - 3 | 0));
+                  };
+                  var isEndOfLine = function (j) {
+                      return j === (v.width - 1 | 0);
+                  };
+                  var isDefaultJ = function (j) {
+                      return v.width > 6 && j === 3;
+                  };
+                  var isDefaultI = function (i) {
+                      return v.height > 6 && i === 3;
+                  };
+                  var showElem = function (e) {
+                      return function (i) {
+                          return function (j) {
+                              if (isEndOfLine(j) && (!isHidI(i) && !isDefaultI(i))) {
+                                  return " " + (Data_Show.show(dictShow)(e) + "\x0a");
+                              };
+                              if (isEndOfLine(j) && isDefaultI(i)) {
+                                  return "\x0a";
+                              };
+                              if (isDefaultI(i) && isDefaultJ(j)) {
+                                  return "";
+                              };
+                              if (isDefaultI(i)) {
+                                  return " .";
+                              };
+                              if (isHidI(i)) {
+                                  return "";
+                              };
+                              if (isDefaultJ(j)) {
+                                  return " . . .";
+                              };
+                              if (isHidJ(j)) {
+                                  return "";
+                              };
+                              if (Data_Boolean.otherwise) {
+                                  return " " + Data_Show.show(dictShow)(e);
+                              };
+                              throw new Error("Failed pattern match at Data.Sparse.Matrix (line 120, column 26 - line 130, column 44): " + [ Data_Unit.unit.constructor.name ]);
+                          };
+                      };
+                  };
+                  return Data_Foldable.foldr(Data_Foldable.foldableArray)(Data_Semigroup.append(Data_Semigroup.semigroupString))("")(Data_Functor.map(Data_Functor.functorArray)(function (i) {
+                      return Data_Foldable.foldr(Data_Foldable.foldableArray)(Data_Semigroup.append(Data_Semigroup.semigroupString))("")(Data_Functor.map(Data_Functor.functorArray)(function (j) {
+                          return showElem(extract(dictEq)(dictSemiring)(v)([ i, j ]))(i)(j);
+                      })(Data_Array.range(0)(v.width - 1 | 0)));
+                  })(Data_Array.range(0)(v.height - 1 | 0)));
+              });
+          };
+      };
+  };
+  var transpose = function (dictEq) {
+      return function (dictSemiring) {
+          return function (dictRing) {
+              return function (v) {
+                  var f = function ($copy_i) {
+                      return function ($copy_j) {
+                          return function ($copy_b) {
+                              var $tco_var_i = $copy_i;
+                              var $tco_var_j = $copy_j;
+                              var $tco_done = false;
+                              var $tco_result;
+                              function $tco_loop(i, j, b) {
+                                  if (i === v.height && j === v.width) {
+                                      $tco_done = true;
+                                      return b;
+                                  };
+                                  if (i === v.height) {
+                                      $tco_var_i = 0;
+                                      $tco_var_j = j + 1 | 0;
+                                      $copy_b = b;
+                                      return;
+                                  };
+                                  if (Data_Boolean.otherwise) {
+                                      $tco_var_i = i + 1 | 0;
+                                      $tco_var_j = j;
+                                      $copy_b = replace(dictEq)(dictRing.Semiring0())(dictRing)(monoPol(monoPol(extract(dictEq)(dictRing.Semiring0())(v)([ i, j ]))(j))(i))(b);
+                                      return;
+                                  };
+                                  throw new Error("Failed pattern match at Data.Sparse.Matrix (line 146, column 7 - line 149, column 53): " + [ i.constructor.name, j.constructor.name, b.constructor.name ]);
+                              };
+                              while (!$tco_done) {
+                                  $tco_result = $tco_loop($tco_var_i, $tco_var_j, $copy_b);
+                              };
+                              return $tco_result;
+                          };
+                      };
+                  };
+                  return f(0)(0)({
+                      height: v.width,
+                      width: v.height,
+                      coefficients: Data_Semiring.zero(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(dictEq))(Data_Sparse_Polynomial.semiringPoly(dictEq)(dictRing.Semiring0())))
+                  });
+              };
+          };
+      };
+  };
+  exports["extract"] = extract;
+  exports["height"] = height;
   exports["monoPol"] = monoPol;
+  exports["transpose"] = transpose;
+  exports["width"] = width;
+  exports["showMatrix"] = showMatrix;
+  exports["semiringMatrix"] = semiringMatrix;
+  exports["functorMatrix"] = functorMatrix;
+  exports["ringMatrix"] = ringMatrix;
 })(PS);
 (function(exports) {
   "use strict";
@@ -27790,6 +28214,34 @@ var PS = {};
   }, Pattern);
   exports["newtypePattern"] = newtypePattern;
 })(PS);
+(function(exports) {
+  "use strict";
+
+  exports.random = Math.random;
+})(PS["Effect.Random"] = PS["Effect.Random"] || {});
+(function($PS) {
+  // Generated by purs version 0.13.8
+  "use strict";
+  $PS["Effect.Random"] = $PS["Effect.Random"] || {};
+  var exports = $PS["Effect.Random"];
+  var $foreign = $PS["Effect.Random"];
+  exports["random"] = $foreign.random;
+})(PS);
+(function(exports) {
+  "use strict";
+
+  exports.unsafePerformEffect = function (f) {
+    return f();
+  };
+})(PS["Effect.Unsafe"] = PS["Effect.Unsafe"] || {});
+(function($PS) {
+  // Generated by purs version 0.13.8
+  "use strict";
+  $PS["Effect.Unsafe"] = $PS["Effect.Unsafe"] || {};
+  var exports = $PS["Effect.Unsafe"];
+  var $foreign = $PS["Effect.Unsafe"];
+  exports["unsafePerformEffect"] = $foreign.unsafePerformEffect;
+})(PS);
 (function($PS) {
   // Generated by purs version 0.13.8
   "use strict";
@@ -27804,13 +28256,173 @@ var PS = {};
   exports["_type"] = _type;
 })(PS);
 (function($PS) {
-  // Generated by purs version 0.13.8
+  "use strict";
+  $PS["ML.LinAlg"] = $PS["ML.LinAlg"] || {};
+  var exports = $PS["ML.LinAlg"];
+  var Data_Array = $PS["Data.Array"];
+  var Data_Eq = $PS["Data.Eq"];
+  var Data_Foldable = $PS["Data.Foldable"];
+  var Data_Functor = $PS["Data.Functor"];
+  var Data_Int = $PS["Data.Int"];
+  var Data_Ring = $PS["Data.Ring"];
+  var Data_Semiring = $PS["Data.Semiring"];
+  var Data_Sparse_Matrix = $PS["Data.Sparse.Matrix"];
+  var Data_Sparse_Polynomial = $PS["Data.Sparse.Polynomial"];
+  var Effect_Random = $PS["Effect.Random"];
+  var Effect_Unsafe = $PS["Effect.Unsafe"];
+  var $$Math = $PS["Math"];                
+
+  //import PRNG ((!!))
+  var Forward = (function () {
+      function Forward() {
+
+      };
+      Forward.value = new Forward();
+      return Forward;
+  })();
+
+  //import PRNG ((!!))
+  var Backward = (function () {
+      function Backward() {
+
+      };
+      Backward.value = new Backward();
+      return Backward;
+  })();
+  var times = function (m1) {
+      return function (m2) {
+          var w = Data_Sparse_Matrix.width(m1);
+          var h = Data_Sparse_Matrix.height(m1);
+          return {
+              height: h,
+              width: w,
+              coefficients: Data_Foldable.foldr(Data_Foldable.foldableArray)(function (i) {
+                  return function (ai) {
+                      return Data_Foldable.foldr(Data_Foldable.foldableArray)(function (j) {
+                          return function (aj) {
+                              return Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(aj)(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.extract(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)(m1)([ i, j ]) * Data_Sparse_Matrix.extract(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)(m2)([ i, j ]))(i))(j));
+                          };
+                      })(ai)(Data_Array.range(0)(w - 1 | 0));
+                  };
+              })(Data_Semiring.zero(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))))(Data_Array.range(0)(h - 1 | 0))
+          };
+      };
+  };
+  var randMatrix = function (h) {
+      return function (w) {
+          return {
+              height: h,
+              width: w,
+              coefficients: Data_Foldable.foldr(Data_Foldable.foldableArray)(function (i) {
+                  return function (ai) {
+                      return Data_Foldable.foldr(Data_Foldable.foldableArray)(function (j) {
+                          return function (aj) {
+                              return Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(aj)(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(Effect_Unsafe.unsafePerformEffect(Effect_Random.random))(i))(j));
+                          };
+                      })(ai)(Data_Array.range(0)(w - 1 | 0));
+                  };
+              })(Data_Semiring.zero(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))))(Data_Array.range(0)(h - 1 | 0))
+          };
+      };
+  };
+  var output = {
+      height: 4,
+      width: 1,
+      coefficients: Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(0))(0))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(0))(1)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(0))(3))
+  };
+  var nonLinSigmoid = function (v) {
+      return function (x) {
+          if (v instanceof Forward) {
+              return 1.0 / (1.0 + $$Math.exp(-x));
+          };
+          if (v instanceof Backward) {
+              return x * (1.0 - x);
+          };
+          throw new Error("Failed pattern match at ML.LinAlg (line 16, column 1 - line 16, column 47): " + [ v.constructor.name, x.constructor.name ]);
+      };
+  };
+  var mean = function (v) {
+      var right = {
+          height: v.width,
+          width: 1,
+          coefficients: Data_Foldable.foldr(Data_Foldable.foldableArray)(function (i) {
+              return function (acc) {
+                  return Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(acc)(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(i))(0));
+              };
+          })(Data_Semiring.zero(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))))(Data_Array.range(0)(v.width - 1 | 0))
+      };
+      var left = {
+          height: 1,
+          width: v.height,
+          coefficients: Data_Foldable.foldr(Data_Foldable.foldableArray)(function (i) {
+              return function (acc) {
+                  return Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(acc)(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(0))(i));
+              };
+          })(Data_Semiring.zero(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))))(Data_Array.range(0)(v.height - 1 | 0))
+      };
+      return (function (v1) {
+          return v1 / (Data_Int.toNumber(v.width) * Data_Int.toNumber(v.height));
+      })(Data_Sparse_Matrix.extract(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)(Data_Semiring.mul(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(Data_Semiring.mul(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(left)(v))(right))([ 0, 0 ]));
+  };
+  var input = {
+      height: 4,
+      width: 3,
+      coefficients: Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(0))(0))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(0))(1)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(1))(1)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(1))(2)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(2))(0)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(2))(2)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(3))(2))
+  };
+  var epsilon = 1.0e-3;
+  var predict = function (x) {
+      return function (y) {
+          var w = Data_Sparse_Matrix.width(x);
+          var loop = function ($copy_s0) {
+              return function ($copy_s1) {
+                  var $tco_var_s0 = $copy_s0;
+                  var $tco_done = false;
+                  var $tco_result;
+                  function $tco_loop(s0, s1) {
+                      var l1 = Data_Functor.map(Data_Sparse_Matrix.functorMatrix)(nonLinSigmoid(Forward.value))(Data_Semiring.mul(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(x)(s0));
+                      var l2 = Data_Functor.map(Data_Sparse_Matrix.functorMatrix)(nonLinSigmoid(Forward.value))(Data_Semiring.mul(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(l1)(s1));
+                      var e2 = Data_Ring.sub(Data_Sparse_Matrix.ringMatrix(Data_Eq.eqNumber)(Data_Ring.ringNumber))(y)(l2);
+                      var d2 = times(e2)(Data_Functor.map(Data_Sparse_Matrix.functorMatrix)(nonLinSigmoid(Backward.value))(l2));
+                      var e1 = Data_Semiring.mul(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(d2)(Data_Sparse_Matrix.transpose(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)(Data_Ring.ringNumber)(s1));
+                      var d1 = times(e1)(Data_Functor.map(Data_Sparse_Matrix.functorMatrix)(nonLinSigmoid(Backward.value))(l1));
+                      var $9 = mean(Data_Functor.map(Data_Sparse_Matrix.functorMatrix)($$Math.abs)(e2)) < epsilon;
+                      if ($9) {
+                          $tco_done = true;
+                          return {
+                              alpha: s0,
+                              omega: s1
+                          };
+                      };
+                      $tco_var_s0 = Data_Semiring.add(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(s0)(Data_Semiring.mul(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(Data_Sparse_Matrix.transpose(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)(Data_Ring.ringNumber)(x))(d1));
+                      $copy_s1 = Data_Semiring.add(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(s1)(Data_Semiring.mul(Data_Sparse_Matrix.semiringMatrix(Data_Eq.eqNumber)(Data_Semiring.semiringNumber))(Data_Sparse_Matrix.transpose(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)(Data_Ring.ringNumber)(l1))(d2));
+                      return;
+                  };
+                  while (!$tco_done) {
+                      $tco_result = $tco_loop($tco_var_s0, $copy_s1);
+                  };
+                  return $tco_result;
+              };
+          };
+          var h = Data_Sparse_Matrix.height(x);
+          return loop(randMatrix(w)(h))(randMatrix(h)(1));
+      };
+  };
+  exports["input"] = input;
+  exports["output"] = output;
+  exports["predict"] = predict;
+})(PS);
+(function($PS) {
   "use strict";
   $PS["Nodes"] = $PS["Nodes"] || {};
   var exports = $PS["Nodes"];
   var Concur_VDom_DOM = $PS["Concur.VDom.DOM"];                
   var text = function (dictLiftWidget) {
       return Concur_VDom_DOM.text(dictLiftWidget);
+  };
+  var pre = function (dictMultiAlternative) {
+      return function (dictShiftMap) {
+          return Concur_VDom_DOM["node'"]("pre")(dictMultiAlternative)(dictShiftMap);
+      };
   };
   var label = function (dictMultiAlternative) {
       return function (dictShiftMap) {
@@ -27836,6 +28448,7 @@ var PS = {};
   };
   exports["div'"] = div$prime;
   exports["label"] = label;
+  exports["pre"] = pre;
   exports["button"] = button;
   exports["text"] = text;
   exports["input"] = input;
@@ -30162,7 +30775,6 @@ var PS = {};
   var Data_Semiring = $PS["Data.Semiring"];
   var Data_Show = $PS["Data.Show"];
   var Data_Sparse_Matrix = $PS["Data.Sparse.Matrix"];
-  var Data_Sparse_Polynomial = $PS["Data.Sparse.Polynomial"];
   var Data_String_CodePoints = $PS["Data.String.CodePoints"];
   var Data_String_Common = $PS["Data.String.Common"];
   var Data_Symbol = $PS["Data.Symbol"];
@@ -30171,6 +30783,7 @@ var PS = {};
   var Effect_Aff_Class = $PS["Effect.Aff.Class"];
   var Effect_Class = $PS["Effect.Class"];
   var Handles = $PS["Handles"];
+  var ML_LinAlg = $PS["ML.LinAlg"];
   var $$Math = $PS["Math"];
   var Nodes = $PS["Nodes"];
   var Numeric_Calculus = $PS["Numeric.Calculus"];
@@ -30238,16 +30851,6 @@ var PS = {};
   };
   var mixer1 = function (arr) {
       return [ Data_Foldable.sum(Data_Foldable.foldableArray)(Data_Semiring.semiringInt)(arr) ];
-  };
-  var m2 = {
-      height: 3,
-      width: 2,
-      coefficients: Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(4.0)(0))(0))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(5.0)(1))(1)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(6.0)(2))(1))
-  };
-  var m1 = {
-      width: 2,
-      height: 3,
-      coefficients: Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Semiring.add(Data_Sparse_Polynomial.semiringPoly(Data_Sparse_Polynomial.eqPoly(Data_Eq.eqNumber))(Data_Sparse_Polynomial.semiringPoly(Data_Eq.eqNumber)(Data_Semiring.semiringNumber)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(1.0)(0))(0))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(2.0)(1))(1)))(Data_Sparse_Matrix.monoPol(Data_Sparse_Matrix.monoPol(3.0)(2))(1))
   };
   var liftExprDual = function (x) {
       return Parser_Syntax.Lit.create(new Parser_Syntax.Dual({
@@ -30485,7 +31088,11 @@ var PS = {};
                   diff2D: st.diff2D,
                   event: st.event,
                   signal: st.signal
-              }))(Handles.onClick) ])([ Nodes.text(Concur_Core_LiftWidget.widgetLiftWidget)("Iterate") ]), Concur_VDom_SVG.svg(Concur_Core_Types.widgetMultiAlternative(Data_Monoid.monoidArray))(Concur_Core_Types.widgetShiftMap)([ Concur_VDom_SVG.width("1280"), Concur_VDom_SVG.height("768") ])(plot2D(st.sig2D.samples)) ]))(function (st$prime) {
+              }))(Handles.onClick) ])([ Nodes.text(Concur_Core_LiftWidget.widgetLiftWidget)("Iterate") ]), Nodes.pre(Concur_Core_Types.widgetMultiAlternative(Data_Monoid.monoidArray))(Concur_Core_Types.widgetShiftMap)([ Nodes.text(Concur_Core_LiftWidget.widgetLiftWidget)(Data_Show.show(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
+                  return "alpha";
+              }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
+                  return "omega";
+              }))(Data_Show.showRecordFieldsNil)(Data_Sparse_Matrix.showMatrix(Data_Show.showNumber)(Data_Semiring.semiringNumber)(Data_Eq.eqNumber)))(Data_Sparse_Matrix.showMatrix(Data_Show.showNumber)(Data_Semiring.semiringNumber)(Data_Eq.eqNumber))))(ML_LinAlg.predict(ML_LinAlg.input)(ML_LinAlg.output))) ]), Concur_VDom_SVG.svg(Concur_Core_Types.widgetMultiAlternative(Data_Monoid.monoidArray))(Concur_Core_Types.widgetShiftMap)([ Concur_VDom_SVG.width("1280"), Concur_VDom_SVG.height("768") ])(plot2D(st.sig2D.samples)) ]))(function (st$prime) {
                   return readWiget(st$prime);
               });
           });
@@ -30520,8 +31127,6 @@ var PS = {};
   exports["deepRename"] = deepRename;
   exports["f3"] = f3;
   exports["system3"] = system3;
-  exports["m1"] = m1;
-  exports["m2"] = m2;
   exports["Formatted"] = Formatted;
   exports["Iterate"] = Iterate;
   exports["epsilon"] = epsilon;

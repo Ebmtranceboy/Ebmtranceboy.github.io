@@ -15,6 +15,7 @@ You can edit this file as you like.
   , "parsing"
   , "prng-middle-square"
   , "psci-support"
+  , "random"
   , "rationals"
   , "sparse-matrices"
   ]
