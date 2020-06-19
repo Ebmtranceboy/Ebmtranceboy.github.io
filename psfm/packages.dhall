@@ -119,27 +119,17 @@ let additions =
 
 
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.13.6-20200226/packages.dhall sha256:3a52562e05b31a7b51d12d5b228ccbe567c527781a88e9028ab42374ab55c0f1
+      https://github.com/purescript/package-sets/releases/download/psc-0.13.8-20200615/packages.dhall sha256:5d0cfad9408c84db0a3fdcea2d708f9ed8f64297e164dc57a7cf6328706df93a
 
 let overrides = {=}
 
-let additions =
-      { sparse-polynomials =
-          { dependencies =
-              [ "prelude"
-              , "console"
-              , "effect"
-              , "ordered-collections"
-              , "tuples"
-              , "rationals"
-              , "cartesian"
-              ]
-          , repo =
-              "https://github.com/Ebmtranceboy/purescript-sparse-polynomials.git"
-          , version =
-              "v1.0.3"
+let additions = {
+concur-vdom =
+          { dependencies = [ "concur-react" ]
+          , repo = "https://github.com/Ebmtranceboy/purescript-concur-vdom.git"
+          , version = "v0.0.3"
           }
-       , prng-middle-square =
+  ,prng-middle-square =
           { dependencies =
              [ "arrays"
               , "console"
@@ -168,6 +158,6 @@ let additions =
         , version =
             "v0.2.2"
        }
-      }
+}
 
 in  upstream // overrides // additions

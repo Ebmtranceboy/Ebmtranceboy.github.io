@@ -4,25 +4,19 @@ You can edit this file as you like.
 -}
 { name = "my-project"
 , dependencies =
-  [ "aff"
-  , "affjax"
-  , "cartesian"
-  , "colors"
+  [ "colors"
+  , "concur-vdom"
   , "console"
   , "dom-filereader"
   , "effect"
   , "fft"
-  , "integers"
-  , "lists"
+  , "halogen-vdom"
   , "numbers"
   , "parsing"
   , "prng-middle-square"
   , "psci-support"
-  , "sparse-polynomials"
-  , "spork"
-  , "strings"
-  , "variant"
-  , "web-file"
+  , "rationals"
+  , "sparse-matrices"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

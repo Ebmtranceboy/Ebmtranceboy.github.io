@@ -3,33 +3,32 @@ module Main where
 import Prelude
 
 import Color (rgb, cssStringRGBA)
-import Data.Array (length, mapWithIndex, zip, (..), concat, zipWith)
+import Concur.Core (Widget)
+import Concur.VDom (HTML)
+import Concur.VDom.Run (runWidgetInDom)
+import Concur.VDom.SVG as S
+import Data.Array (concat, length, mapWithIndex, zip, zipWith, (..))
 import Data.Complex (Cartesian(..))
-import Data.Const (Const)
 import Data.Either (Either(..), hush)
 import Data.Foldable (sum, foldr)
 import Data.Int (round, toNumber)
-import Data.Map (fromFoldable, empty)
-import Data.Maybe (Maybe(..), fromJust, maybe)
+import Data.Map (fromFoldable)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Number (infinity)
 import Data.Number.Format (toStringWith, fixed)
+import Data.Sparse.Matrix (Matrix(..), (^))
 import Data.String (drop, split, trim, Pattern(..), joinWith)
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
-import ML.LinAlg (Matrix, ins)
+import Handles (_type, onChange, onClick) as P
 import Math (exp, pow)
+import Nodes (label, text, div', input, button) as D
 import Numeric.Calculus (Signal1D, Signal2D, differentiate, laplacian)
-import PRNG ((!!))
+import PRNG ((!!)) 
 import Parser.Eval (eval)
 import Parser.Parser (parse)
 import Parser.Syntax (Dual(..), Expr(..), tanh)
-import Partial.Unsafe (unsafePartial)
-import SVGpork.Render (svgline, svgpath)
-import Spork.App as App
-import Spork.Html (Html)
-import Spork.Html as H
-import Spork.Interpreter (merge, never, throughAff)
 import Web.Event.Event (Event, target)
 import Web.File.File (toBlob)
 import Web.File.FileList (item)
@@ -115,8 +114,8 @@ f3 = alteredNumberSystem "x1+1.0, x2+2.0, 3" (deepRename "x2" "x1") :: System Nu
 system3 :: System Number
 system3 = source3 >>> f3 >>> mixer3
 
-m1 = {nrows: 3, ncols: 2, content: ins 0 0 1.0 $ ins 1 1 2.0 $ ins 2 1 3.0 empty} :: Matrix
-m2 = {nrows: 3, ncols: 2, content: ins 0 0 4.0 $ ins 1 1 5.0 $ ins 2 1 6.0 empty} :: Matrix
+m1 = Matrix {width: 2, height: 3, coefficients: 1.0^0^0+2.0^1^1+3.0^2^1} :: Matrix Number
+m2 = Matrix {height: 3, width: 2, coefficients: 4.0^0^0+5.0^1^1+6.0^2^1} :: Matrix Number
 
 class Formatted a where
   showWithFormat :: Int -> a -> String
@@ -133,23 +132,16 @@ instance formattedArray :: Formatted a => Formatted (Array (Array a)) where
   showWithFormat n xxs =
     "[" <> joinWith ",\n" ((\xs -> "[" <> joinWith ", " (showWithFormat n <$> xs) <> "]") <$> xxs) <> "]"
 
-type FileContent = String
-
-data Unpure a
-    = GetFileText Event (FileContent -> a)
-
 type State =
   { signal :: Signal1D
   , diff :: Signal1D
   , diff2 :: Signal1D
   , sig2D :: Signal2D
   , diff2D :: Signal2D
-  , textFile :: FileContent
+  , event :: Maybe Event
   }
 
 data Action = Iterate
-            | UpdateFileText Event
-            | DoneReading FileContent
 
 epsilon = 0.001 :: Number
 
@@ -162,24 +154,24 @@ mul2D  {dT, samples: s1} {dT: dT_, samples: s2} = {dT, samples: zipWith (zipWith
 scl2D :: Number -> Signal2D -> Signal2D
 scl2D k  {dT, samples} = {dT, samples: (\xs -> (_* k) <$> xs) <$> samples}
 
-update ∷ State -> Action -> App.Transition Unpure State Action
-update s Iterate = App.purely $ s{sig2D = s.sig2D `add2D` scl2D epsilon (laplacian s.sig2D)}
-update s (UpdateFileText ev) =
-  { model: s
-  , effects: App.lift (GetFileText ev DoneReading)
-  }
-update s (DoneReading text) = App.purely $ s{textFile = text}
-
-bar :: OffsetY -> Number -> Number -> Html Action
+bar :: OffsetY -> Number -> Number -> Widget HTML State
 bar offsetY x y =
   let offsetX = 10.0
       scaleX = 0.50
       scaleY = 50.0
-  in svgline (offsetX+scaleX*x) (offsetY) (offsetX+scaleX*x) (offsetY-scaleY*y) "#000" 0.2
+  in S.line
+    [ S.unsafeMkProp "x1" (offsetX+scaleX*x)
+    , S.unsafeMkProp "x2" (offsetX+scaleX*x)
+    , S.unsafeMkProp "y1" (offsetY)
+    , S.unsafeMkProp "y2" (offsetY-scaleY*y)
+    , S.stroke "#000000"
+    , S.strokeWidth 1
+    ]
+    []
 
 type OffsetY = Number
 
-plot1D :: OffsetY -> Array Number -> Array (Html Action)
+plot1D :: OffsetY -> Array Number -> Array (Widget HTML State)
 plot1D off xs =  mapWithIndex (\i x -> bar off (toNumber i) x) xs
 
 charter :: Number -> String
@@ -189,49 +181,30 @@ charter v =
     then cssStringRGBA $ rgb (255 - round (-bounded)) (255 - round (-bounded)) 255
     else cssStringRGBA $ rgb 255 (255 - round bounded) (255 - round bounded)
 
-cell :: Number -> Number -> Number -> Html Action
+cell :: Number -> Number -> Number -> Widget HTML State
 cell x y v =
   let unitX = 5.0
       unitY = 5.0
       fill = charter v
       m a b = "M " <> show (a*unitX) <> " " <> show (b*unitY) <> " "
       l a b = "L " <> show (a*unitX) <> " " <> show (b*unitY) <> " "
-   in svgpath "#000" 0.0 fill $ m x y <> l (x+unitX) y <> l (x+unitX) (y+unitY) <> l x (y+unitY) <> "Z"
+   in S.path
+      [ S.stroke "#000000"
+      , S.strokeWidth 0
+      , S.fill fill
+      , S.d $ m x y <> l (x+unitX) y <> l (x+unitX) (y+unitY) <> l x (y+unitY) <> "Z"
+      ]
+      []
 
-
-plot2D :: Array (Array Number) -> Array (Html Action)
+plot2D :: Array (Array Number) -> Array ( Widget HTML State)
 plot2D xys = concat $ mapWithIndex (\i xs -> mapWithIndex (\j v -> cell (toNumber i) (toNumber j) v) xs) xys
+
 
 extremums :: Array Number -> {max :: Number, min :: Number}
 extremums xs =
   { max: foldr max (-infinity) xs
   , min: foldr min infinity xs
   }
-
-render ∷ State → Html Action
-render s =
-  H.div []
-  [ H.label [] [H.text $  (show $ extremums s.signal.samples) <> (show $ extremums s.diff.samples)]
-  , H.button [H.onClick $ H.always_ Iterate] [H.text "Iterate"]
-  , H.input [H.type_ H.InputFile, H.onChange $ H.always UpdateFileText]
-  , H.label [] [H.text $ s.textFile]
-  , H.elemWithNS
-      ns
-      "svg"
-      [ H.attr "width" "1280"
-      , H.attr "height" "768"
-      ]
-      (
-       {-plot1D 100.0 (s.signal.samples)
-       <> plot1D 300.0 (s.diff.samples)
-       <> plot1D 500.0 (s.diff2.samples) -}
-      --plot2D s.sig2D.samples
-      plot2D s.sig2D.samples
-
-      )
-  ]
-    where
-      ns = Just $ H.Namespace "http://www.w3.org/2000/svg"
 
 nSamples = 64 :: Int
 
@@ -249,33 +222,41 @@ gaussians = (\i -> (\j -> gaussian2D (i+4) (j-7) + gaussian2D (i-6) (j+5)) <$> (
 
 sigGaussian2D = {dT: 0.1, samples: gaussians} :: Signal2D
 
-app ∷ App.App Unpure (Const Void) State Action
-app = { update
-      , subs: const mempty
-      , render
-      , init: App.purely  { signal: sigGaussian
-                          , diff: differentiate 1 sigGaussian
-                          , diff2: differentiate 2 sigGaussian
-                          , sig2D: sigGaussian2D
-                          , diff2D: laplacian sigGaussian2D
-                          , textFile: ""
-                          }
-      }
+readWiget ::  State -> Widget HTML State
+readWiget st = do
+  mfs <- liftEffect $ maybe (pure Nothing) files (fromEventTarget =<< target =<< st.event)
+  txt <- liftAff $ maybe (pure "") readAsText
+                      $ (Just <<< toBlob) =<< item 0 =<< mfs
+  st' <- D.div'
+    [ D.input [P._type "file", (\ev -> st{event = Just ev}) <$> P.onChange]
+    , D.label [] [D.text txt]
+    , D.label [] [D.text $  (show $ extremums st.signal.samples) <> (show $ extremums st.diff.samples)]
+    , D.button [(const $ st{sig2D = st.sig2D `add2D` scl2D epsilon (laplacian st.sig2D)}) <$> P.onClick]
+                [D.text "Iterate"]
+    , S.svg
+        [ S.width "1280"
+        , S.height "768"
+        ]
+      (
+       --plot1D 100.0 (st.signal.samples)
+       -- <> plot1D 300.0 (st.diff.samples)
+       -- <> plot1D 500.0 (st.diff2.samples)
+      --plot2D st.sig2D.samples
+      plot2D st.sig2D.samples
+      )
 
-runUnpure ::  Unpure ~> Aff
-runUnpure unpure =
-    case unpure of
-        GetFileText ev next -> do
-          mfs <- liftEffect $ files (unsafePartial
-              $ fromJust $ fromEventTarget =<< target ev)
-          next <$> (maybe (pure "") readAsText
-                      $ (Just <<< toBlob) =<< item 0 =<< mfs)
+    ]
+  readWiget st'
 
 main :: Effect Unit
 main = do
-    let interpreter = throughAff runUnpure (const $ pure unit)
-    inst <- App.makeWithSelector (interpreter `merge` never) app "#app"
-    inst.run
+  runWidgetInDom "main" $ readWiget { signal: sigGaussian
+                      , diff: differentiate 1 sigGaussian
+                      , diff2: differentiate 2 sigGaussian
+                      , sig2D: sigGaussian2D
+                      , diff2D: laplacian sigGaussian2D
+                      , event: Nothing
+                      }
 
 {-
 main :: Effect Unit
