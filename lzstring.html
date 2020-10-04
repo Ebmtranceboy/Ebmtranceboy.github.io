@@ -1,0 +1,36 @@
+<DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>LZ String Encoder/Decoder</title>
+  </head>
+  
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    
+    <textarea id="input" cols="80" rows="10"></textarea>
+    <button id="encode">Encode</button>    
+    <button id="decode">Decode</button>
+    <br>
+    <pre id="output"></pre>
+    
+    <script>
+      var input = document.querySelector("#input");
+      var output = document.querySelector("#output");
+      var encode = document.querySelector("#encode");
+      var decode = document.querySelector("#decode");
+      
+      encode.addEventListener('click', encodeInput);
+      decode.addEventListener('click', decodeInput);
+      
+      function encodeInput(){
+        output.innerHTML = LZString.compressToEncodedURIComponent(input.value);
+      }
+      
+      function decodeInput(){
+        output.innerHTML = LZString.decompressFromEncodedURIComponent(input.value);
+      }
+    </script>
+    
+  </body>
+</html>
