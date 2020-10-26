@@ -10,11 +10,13 @@
   </head>
 
   <body>
-    
+     <button id="midibtn" onclick="turnOnAudio();">configure MIDI</button>
+   
     <div id="log"></div>
   
     <script>
       const log = document.querySelector('#log');
+      const midibtn = document.querySelector('#midibtn');
       
       let context = null;     // the Web Audio "context" object
       let midiAccess = null;  // the MIDIAccess object.
@@ -25,17 +27,17 @@
       const portamento = 0.05;  // portamento/glide speed
       const activeNotes = [];   // the stack of actively-pressed keys
 
-      window.addEventListener('load', function() {
+    function turnOnAudio() {
+     
         // patch up prefixes
-        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        context = new (window.AudioContext || window.webkitAudioContext)();
 
-        context = new AudioContext();
         if (navigator.requestMIDIAccess)
           navigator.requestMIDIAccess({ sysex: true }).then( onMIDIInit, onMIDIReject );
         else
           log.innerHTML = `No MIDI support present in your browser.
   You're gonna have a bad time.`;
-
+        midibtn.style = "visibility:hidden";
         // set up the basic oscillator chain, muted to begin with.
         oscillator = context.createOscillator();
         oscillator.frequency.setValueAtTime(110, 0);
@@ -44,7 +46,7 @@
         envelope.connect(context.destination);
         envelope.gain.value = 0.0;  // Mute the sound
         oscillator.start(0);  // Go ahead and start up the oscillator
-      } );
+      } 
 
       function onMIDIInit(midi) {
         midiAccess = midi;
