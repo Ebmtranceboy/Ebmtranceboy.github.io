@@ -21,7 +21,7 @@ import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Handles (_type, onChange, onClick) as P
-import ML.LinAlg (predict, input, output)
+import ML.LinAlg (crazyProduct, input, output, predict, a1, b1)
 import Math (exp, pow)
 import Nodes (label, text, div', input, button, pre) as D
 import Numeric.Calculus (Signal1D, Signal2D, differentiate, laplacian)
@@ -227,10 +227,17 @@ readWiget st = do
   st' <- D.div'
     [ D.input [P._type "file", (\ev -> st{event = Just ev}) <$> P.onChange]
     , D.label [] [D.text txt]
-    , D.label [] [D.text $  (show $ extremums st.signal.samples) <> (show $ extremums st.diff.samples)]
+    --, D.label [] [D.text $  (show $ extremums st.signal.samples) <> (show $ extremums st.diff.samples)]
     , D.button [(const $ st{sig2D = st.sig2D `add2D` scl2D epsilon (laplacian st.sig2D)}) <$> P.onClick]
                 [D.text "Iterate"]
-    , D.pre [D.text $ show $ predict input output]
+--    , D.pre [D.text $ show $ predict input output]
+    , D.pre [D.text $ show $ input]
+    , D.pre [D.text $ show $ a1 * b1]
+    , D.pre [D.text $ show $ crazyProduct a1 b1 0]
+    , D.pre [D.text $ show $ crazyProduct a1 b1 1]
+    , D.pre [D.text $ show $ crazyProduct a1 b1 2]
+--    , D.pre [D.text $ show $ crazyProduct a1 b1 3]
+  --  , D.pre [D.text $ show $ crazyProduct a1 b1 4]
     , S.svg
         [ S.width "1280"
         , S.height "768"
