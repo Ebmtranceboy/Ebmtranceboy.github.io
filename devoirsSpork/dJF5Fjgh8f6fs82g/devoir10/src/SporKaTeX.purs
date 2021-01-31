@@ -1,1 +1,0 @@
-../../../../data/common/SporKaTeX.purs
