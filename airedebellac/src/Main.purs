@@ -5,13 +5,20 @@ import Prelude
 import Control.Monad.Rec.Class (forever)
 import Data.Array as Array
 import Data.Const (Const)
+import Data.Date (Date, canonicalDate)
+import Data.DateTime (DateTime (..), Time (..))
+import Data.Enum (toEnum)
 import Data.Either (hush)
+import Data.Int (round)
 import Data.Maybe (Maybe(..))
+import Data.String (Pattern (..), split)
+import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff
 import Effect.Aff.Class (class MonadAff)
 import Effect.Exception (error)
+import Global (readFloat)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
@@ -29,16 +36,22 @@ import Web.UIEvent.KeyboardEvent (KeyboardEvent, key) as Event
 type Note =
   { text ∷ String
   }
+  
+type DateValues = { year :: Int, month :: Int, day :: Int }
 
 type State = 
   { name ∷ String 
   , notes ∷ Array Note
   , elapsed :: Int
+  , baseDate :: Maybe DateValues
+  , emplacement :: Int
   }
 
 data Action 
   = Initialize
   | UpdateName String
+  | UpdateDate String
+  | UpdateEmplacement String
   | AddTodo
   | DeleteAll Int
   | Tick
@@ -59,6 +72,8 @@ initialState n =
   { name: "" 
   , notes: []
   , elapsed: n
+  , baseDate: Nothing
+  , emplacement: 1
   }
 
 update :: State -> State
@@ -76,7 +91,7 @@ toStorage :: State -> Effect Unit
 toStorage state =
   DOM.window
       >>= DOM.localStorage
-      >>= Storage.setItem storageKey (writeJSON { notes: state.notes })
+      >>= Storage.setItem storageKey (writeJSON { notes: state.notes, baseDate: state.baseDate })
 
 fromStorage :: Effect State
 fromStorage = do
@@ -84,11 +99,12 @@ fromStorage = do
     DOM.window
       >>= DOM.localStorage
       >>= Storage.getItem storageKey
-      >>> map (_ >>= (readJSON :: String -> E { notes :: Array Note }) >>> hush)
+      >>> map (_ >>= (readJSON :: String -> E { notes :: Array Note, baseDate :: Maybe DateValues }) >>> hush)
   pure $ case storedModel of
       Nothing → initialState 0
       Just sm → (initialState 0)
         { notes = sm.notes
+        , baseDate = sm.baseDate
         }
 
 timer :: forall m. MonadAff m => EventSource m Action
@@ -110,6 +126,13 @@ handleAction ( Initialize ) = do
 handleAction ( UpdateName newName ) = 
   H.modify_ _{ name = newName }
 
+handleAction ( UpdateEmplacement newEmpl ) = 
+  H.modify_ _{ emplacement = round $ readFloat newEmpl }
+
+handleAction ( UpdateDate iAmADate ) = do
+  H.modify_ _{ baseDate = prove iAmADate }
+  H.get >>= (toStorage >>> H.liftEffect) 
+
 handleAction ( AddTodo ) = do
   H.modify_ update
   H.get >>= (toStorage >>> H.liftEffect) 
@@ -127,10 +150,49 @@ onEnter a = HE.onKeyDown \ev →
     then Just a
     else Nothing
 
+today :: Maybe Date
+today = canonicalDate <$> toEnum 2021 <*> toEnum 2 <*> toEnum 1
+
+valuesToDate :: Maybe DateValues -> Maybe DateTime
+valuesToDate mvs = mvs >>= \{year, month, day} ->  
+   DateTime <$> (canonicalDate <$> toEnum year <*> toEnum month <*> toEnum day) 
+            <*> (Time <$> toEnum 8 <*> toEnum 30 <*> toEnum 0 <*> toEnum 0)
+
+now :: Maybe DateTime
+now = DateTime <$> today <*> (Time <$> toEnum 8 <*> toEnum 30 <*> toEnum 0 <*> toEnum 0)
+
+prove :: String -> Maybe DateValues
+prove str = 
+  let ns = split (Pattern "-") str
+      int = round <<< readFloat
+  in (\ a b c -> {year: int a, month: int b, day: int c}) 
+    <$> (ns Array.!! 0) <*> (ns Array.!! 1) <*> (ns Array.!! 2)
+
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
     HH.div_ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
+            , HH.p_ [ HH.text $ "Today : " <> show today ]
+            , HH.p_ [ HH.text $ "Base : " <> show (valuesToDate state.baseDate) ]
+            , HH.input [ HP.type_ HP.InputDate
+                       , HE.onValueInput $ Just <<< UpdateDate
+                       ]
+            , HH.input [ HP.type_ HP.InputRadio
+                       , HP.name "emplacements"
+                       , HP.id_ "empl1"
+                       , HP.value "1"
+                       , HE.onValueInput $ Just <<< UpdateEmplacement
+                       ]
+            , HH.label [ HP.for "empl1" ] [HH.text "1"]
+            , HH.input [ HP.type_ HP.InputRadio
+                       , HP.name "emplacements"
+                       , HP.id_ "empl2"
+                       , HP.value "2"
+                       , HE.onValueInput $ Just <<< UpdateEmplacement
+                       ]
+            , HH.label [ HP.for "empl2" ] [HH.text "2"]
+            , HH.p_ [ HH.text $ "Emplacement " <> show state.emplacement ]
             , HH.p_ [ HH.text "What is your name?" ]
+            , hello
             , HH.input [ HP.type_ HP.InputText
                        , HP.value state.name
                        , HP.placeholder "type note"
@@ -138,7 +200,6 @@ render state =
                        , HE.onValueInput $ Just <<< UpdateName
                        , onEnter AddTodo
                        ]
-            , hello
             , HH.ul [] $
               (\note -> HH.li [] [HH.label [] [HH.text note.text]]) 
                 <$> state.notes
