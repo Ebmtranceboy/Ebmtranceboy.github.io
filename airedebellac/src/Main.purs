@@ -5,14 +5,14 @@ import Prelude
 import Control.Monad.Rec.Class (forever)
 import Data.Array as Array
 import Data.Const (Const)
-import Data.Date (Date, canonicalDate)
-import Data.DateTime (DateTime (..), Time (..))
+import Data.Date (Date, Month, canonicalDate, diff, weekday, year, month, day)
 import Data.Enum (toEnum)
 import Data.Either (hush)
 import Data.Int (round)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.String (Pattern (..), split)
 import Debug.Trace (spy)
+import Data.Time.Duration (Days)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff
@@ -164,11 +164,19 @@ onEnter a = HE.onKeyDown \ev →
     then Just a
     else Nothing
 
-valuesToDate :: Maybe DateValues -> Maybe DateTime
+valuesToDate :: Maybe DateValues -> Maybe Date
 valuesToDate mvs = mvs >>= \{year, month, day} ->  
-   DateTime <$> (canonicalDate <$> toEnum year <*> toEnum month <*> toEnum day) 
-            <*> (Time <$> toEnum 8 <*> toEnum 30 <*> toEnum 0 <*> toEnum 0)
-
+   canonicalDate <$> toEnum year <*> toEnum month <*> toEnum day
+   
+prettyDate :: Maybe DateValues -> String
+prettyDate mvs =
+  let mdate = valuesToDate mvs
+      wday = maybe "" show $ weekday <$> mdate
+      label = mvs >>= \{ year, month, day } ->
+        (\ w d m y -> w <> " " <> show d <> "th " <> show (m :: Month) <> " " <> show y)
+          <$> Just wday <*> Just day <*> toEnum month <*> Just year
+  in fromMaybe "" label
+    
 prove :: String -> Maybe DateValues
 prove str = 
   let ns = split (Pattern "-") str
@@ -190,14 +198,21 @@ empl n =
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
     HH.div_ $ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
-            , HH.p_ [ HH.text $ "Base : " <> show (valuesToDate state.baseDate) ]
+            , HH.p_ [ HH.text $ "Base : " <> prettyDate state.baseDate ]
             , HH.input [ HP.type_ HP.InputDate
+                       , HP.value "2021-03-14"
                        , HE.onValueInput $ Just <<< UpdateBase
                        ]
             , HH.p_ [ HH.text $ "Newer : " <> show (valuesToDate state.newerDate) ]
             , HH.input [ HP.type_ HP.InputDate
                        , HE.onValueInput $ Just <<< UpdateNewer
                        ]
+            
+            , HH.p_ [ HH.text $ "Diff : " 
+                              <> (show :: Maybe Days -> String) (diff <$> valuesToDate state.newerDate 
+                                            <*> valuesToDate state.baseDate)
+                              <> " days"
+                    ]
             ]
             <>
             (Array.concat $ empl <$> 1 Array... 8)
