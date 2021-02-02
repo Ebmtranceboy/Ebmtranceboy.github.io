@@ -189,7 +189,7 @@ render state =
                        ]
             ]
             <>
-            (Array.concat $ empl <$> 1 Array... 8)
+            (Array.concat $ empl <$> 1 Array... 9)
             <>
             [ HH.p_ [ HH.text $ "Emplacement " <> show state.emplacement ]
             , HH.p_ [ HH.text "What is your name?" ]
