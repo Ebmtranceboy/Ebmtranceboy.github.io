@@ -5,14 +5,14 @@ import Prelude
 import Control.Monad.Rec.Class (forever)
 import Data.Array as Array
 import Data.Const (Const)
-import Data.Date (Date, Month, canonicalDate, diff, weekday, year, month, day)
+import Data.Date (Date, Month, canonicalDate, diff, weekday)
 import Data.Enum (toEnum)
 import Data.Either (hush)
 import Data.Int (round)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.String (Pattern (..), split)
-import Debug.Trace (spy)
 import Data.Time.Duration (Days)
+import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff
@@ -39,6 +39,12 @@ type Note =
   
 type DateValues = { year :: Int, month :: Int, day :: Int }
 
+type Fluid = { eau :: Number, edf :: Number }
+
+raz = { eau: 0.0, edf: 0.0 } :: Fluid
+
+type Stat = { base :: Fluid, newer :: Fluid }
+
 type State = 
   { name ∷ String 
   , notes ∷ Array Note
@@ -46,6 +52,7 @@ type State =
   , baseDate :: Maybe DateValues
   , newerDate :: Maybe DateValues
   , emplacement :: Int
+  , stats :: Array Stat
   }
 
 data Action 
@@ -54,6 +61,10 @@ data Action
   | UpdateBase String
   | UpdateNewer String
   | UpdateEmplacement String
+  | UpdateBaseEau String
+  | UpdateBaseEdf String
+  | UpdateNewerEau String
+  | UpdateNewerEdf String
   | AddTodo
   | DeleteAll Int
   | Tick
@@ -77,6 +88,7 @@ initialState n =
   , baseDate: Nothing
   , newerDate: Nothing
   , emplacement: 1
+  , stats: Array.replicate 9 { base: raz, newer: raz }
   }
 
 update :: State -> State
@@ -96,7 +108,8 @@ toStorage state =
       >>= DOM.localStorage
       >>= Storage.setItem storageKey (writeJSON { notes: state.notes
                                                 , baseDate: state.baseDate 
-                                                , newerDate: state.newerDate 
+                                                , newerDate: state.newerDate
+                                                , stats: state.stats 
                                                 })
 
 fromStorage :: Effect State
@@ -108,6 +121,7 @@ fromStorage = do
       >>> map (_ >>= (readJSON :: String -> E { notes :: Array Note
                                               , baseDate :: Maybe DateValues 
                                               , newerDate :: Maybe DateValues 
+                                              , stats :: Array Stat
                                               }) >>> hush)
   pure $ case storedModel of
       Nothing → initialState 0
@@ -115,6 +129,7 @@ fromStorage = do
         { notes = sm.notes
         , baseDate = sm.baseDate
         , newerDate = sm.newerDate
+        , stats = sm.stats
         }
 
 timer :: forall m. MonadAff m => EventSource m Action
@@ -131,13 +146,79 @@ handleAction :: forall m
   => Action -> H.HalogenM State Action () Void m Unit
 handleAction ( Initialize ) = do
   _ <- H.subscribe timer
-  H.liftEffect fromStorage >>= H.put
+  --H.liftEffect fromStorage >>= H.put
+  pure unit
   
 handleAction ( UpdateName newName ) = 
   H.modify_ _{ name = newName }
 
 handleAction ( UpdateEmplacement newEmpl ) = 
   H.modify_ _{ emplacement = round $ readFloat newEmpl }
+
+handleAction ( UpdateBaseEau newEau ) = do
+  st <- H.get
+  let e = st.emplacement
+      ms = st.stats Array.!! e
+  H.modify_ _{ stats = 
+    let ms' = (\s -> Array.updateAt e 
+                { base: { edf: s.base.edf
+                        , eau: readFloat newEau
+                        }
+                , newer: s.newer
+                } st.stats
+              ) =<< ms
+      in fromMaybe st.stats ms'
+      }
+  H.get >>= (toStorage >>> H.liftEffect) 
+
+
+handleAction ( UpdateBaseEdf newEdf ) = do
+  st <- H.get
+  let e = st.emplacement
+      ms = st.stats Array.!! e
+  H.modify_ _{ stats = 
+    let ms' = (\s -> Array.updateAt e 
+                { base: { eau: s.base.eau
+                        , edf: readFloat newEdf
+                        }
+                , newer: s.newer
+                } st.stats
+              ) =<< ms
+      in fromMaybe st.stats ms'
+      }
+  H.get >>= (toStorage >>> H.liftEffect) 
+
+handleAction ( UpdateNewerEau newEau ) = do
+  st <- H.get
+  let e = st.emplacement
+      ms = st.stats Array.!! e
+  H.modify_ _{ stats = 
+    let ms' = (\s -> Array.updateAt e 
+                { newer: { edf: s.newer.edf
+                         , eau: readFloat newEau
+                         }
+                , base: s.base
+                } st.stats
+              ) =<< ms
+      in fromMaybe st.stats ms'
+      }
+  H.get >>= (toStorage >>> H.liftEffect) 
+
+handleAction ( UpdateNewerEdf newEdf ) = do
+  st <- H.get
+  let e = st.emplacement
+      ms = st.stats Array.!! e
+  H.modify_ _{ stats = 
+    let ms' = (\s -> Array.updateAt e 
+                { newer: { eau: s.newer.eau
+                         , edf: readFloat newEdf
+                         }
+                , base: s.base
+                } st.stats
+              ) =<< ms
+      in fromMaybe st.stats ms'
+      }
+  H.get >>= (toStorage >>> H.liftEffect) 
 
 handleAction ( UpdateBase iAmADate ) = do
   H.modify_ _{ baseDate = prove iAmADate }
@@ -167,6 +248,17 @@ onEnter a = HE.onKeyDown \ev →
 valuesToDate :: Maybe DateValues -> Maybe Date
 valuesToDate mvs = mvs >>= \{year, month, day} ->  
    canonicalDate <$> toEnum year <*> toEnum month <*> toEnum day
+
+dateValuesToValue :: Maybe DateValues -> String
+dateValuesToValue mvs = 
+  fromMaybe "" $ (\{ year, month, day } -> 
+                      show year
+                      <> "-"
+                      <> (if month < 10 then "0" else "")
+                      <> show month
+                      <> "-"
+                      <> (if day < 10 then "0" else "")
+                      <> show day) <$> mvs
    
 prettyDate :: Maybe DateValues -> String
 prettyDate mvs =
@@ -184,7 +276,7 @@ prove str =
   in (\ a b c -> {year: int a, month: int b, day: int c}) 
     <$> (ns Array.!! 0) <*> (ns Array.!! 1) <*> (ns Array.!! 2)
 
-empl :: Int -> _
+empl :: forall a. Int -> Array (HH.HTML a Action)
 empl n = 
   [ HH.input  [ HP.type_ HP.InputRadio
               , HP.name "emplacements"
@@ -195,17 +287,48 @@ empl n =
   , HH.label [ HP.for $ "empl" <> show n ] [HH.text $ show n]
   ]
 
+safeAt :: Array Stat -> (Stat -> Number) -> Int -> String
+safeAt xs ex n =
+  let mx = xs Array.!! n
+  in maybe "0.0" (\x -> show $ ex x) mx
+
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
-    HH.div_ $ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
+  HH.div_ $ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
+            ]
+            <>
+              (Array.concat $ empl <$> 1 Array... 8)
+            <>
+            [ HH.p_ [ HH.text $ "Emplacement " <> show state.emplacement ]
             , HH.p_ [ HH.text $ "Base : " <> prettyDate state.baseDate ]
             , HH.input [ HP.type_ HP.InputDate
-                       , HP.value "2021-03-14"
+                       , HP.value $ dateValuesToValue state.baseDate
                        , HE.onValueInput $ Just <<< UpdateBase
                        ]
-            , HH.p_ [ HH.text $ "Newer : " <> show (valuesToDate state.newerDate) ]
+            , HH.label_ [ HH.text "Eau : "]
+            , HH.input [ HP.type_ HP.InputNumber
+                       , HP.value $ safeAt state.stats (_.base >>> _.eau) state.emplacement
+                       , HE.onValueInput $ Just <<< UpdateBaseEau
+                       ]
+            , HH.label_ [ HH.text "Edf : "]
+            , HH.input [ HP.type_ HP.InputNumber
+                       , HP.value $ safeAt state.stats (_.base >>> _.edf) state.emplacement
+                       , HE.onValueInput $ Just <<< UpdateBaseEdf
+                       ]
+            , HH.p_ [ HH.text $ "Newer : " <> prettyDate state.newerDate ]
             , HH.input [ HP.type_ HP.InputDate
+                       , HP.value $ dateValuesToValue state.newerDate
                        , HE.onValueInput $ Just <<< UpdateNewer
+                       ]
+            , HH.label_ [ HH.text "Eau : "]
+            , HH.input [ HP.type_ HP.InputNumber
+                       , HP.value $ safeAt state.stats (_.newer >>> _.eau) state.emplacement
+                       , HE.onValueInput $ Just <<< UpdateNewerEau
+                       ]
+            , HH.label_ [ HH.text "Edf : "]
+            , HH.input [ HP.type_ HP.InputNumber
+                       , HP.value $ safeAt state.stats (_.newer >>> _.edf) state.emplacement
+                       , HE.onValueInput $ Just <<< UpdateNewerEdf
                        ]
             
             , HH.p_ [ HH.text $ "Diff : " 
@@ -213,11 +336,6 @@ render state =
                                             <*> valuesToDate state.baseDate)
                               <> " days"
                     ]
-            ]
-            <>
-            (Array.concat $ empl <$> 1 Array... 8)
-            <>
-            [ HH.p_ [ HH.text $ "Emplacement " <> show state.emplacement ]
             , HH.p_ [ HH.text "What is your name?" ]
             , hello
             , HH.input [ HP.type_ HP.InputText

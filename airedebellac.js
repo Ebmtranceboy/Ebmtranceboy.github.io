@@ -4122,13 +4122,6 @@ var PS = {};
   var state = function (dict) {
       return dict.state;
   };
-  var put = function (dictMonadState) {
-      return function (s) {
-          return state(dictMonadState)(function (v) {
-              return new Data_Tuple.Tuple(Data_Unit.unit, s);
-          });
-      };
-  };
   var modify_ = function (dictMonadState) {
       return function (f) {
           return state(dictMonadState)(function (s) {
@@ -4143,7 +4136,6 @@ var PS = {};
   };
   exports["MonadState"] = MonadState;
   exports["get"] = get;
-  exports["put"] = put;
   exports["modify_"] = modify_;
 })(PS);
 (function($PS) {
@@ -4406,6 +4398,7 @@ var PS = {};
       throw new Error("Failed pattern match at DOM.HTML.Indexed.InputType (line 28, column 19 - line 50, column 22): " + [ v.constructor.name ]);
   };
   exports["InputDate"] = InputDate;
+  exports["InputNumber"] = InputNumber;
   exports["InputRadio"] = InputRadio;
   exports["InputText"] = InputText;
   exports["renderInputType"] = renderInputType;
@@ -4429,7 +4422,31 @@ var PS = {};
       result[n] = i;
       return result;
     };
-  };   
+  };
+
+  var replicateFill = function (count) {
+    return function (value) {
+      if (count < 1) {
+        return [];
+      }
+      var result = new Array(count);
+      return result.fill(value);
+    };
+  };
+
+  var replicatePolyfill = function (count) {
+    return function (value) {
+      var result = [];
+      var n = 0;
+      for (var i = 0; i < count; i++) {
+        result[n++] = value;
+      }
+      return result;
+    };
+  };
+
+  // In browsers that have Array.prototype.fill we use it, as it's faster.
+  exports.replicate = typeof Array.prototype.fill === "function" ? replicateFill : replicatePolyfill;
 
   //------------------------------------------------------------------------------
   // Array size ------------------------------------------------------------------
@@ -4461,6 +4478,21 @@ var PS = {};
     };
   };
 
+  exports._updateAt = function (just) {
+    return function (nothing) {
+      return function (i) {
+        return function (a) {
+          return function (l) {
+            if (i < 0 || i >= l.length) return nothing;
+            var l1 = l.slice();
+            l1[i] = a;
+            return just(l1);
+          };
+        };
+      };
+    };
+  };
+
   exports.concat = function (xss) {
     if (xss.length <= 10000) {
       // This method is faster, but it crashes on big arrays.
@@ -4485,9 +4517,12 @@ var PS = {};
   var exports = $PS["Data.Array"];
   var $foreign = $PS["Data.Array"];
   var Data_Maybe = $PS["Data.Maybe"];
+  var updateAt = $foreign["_updateAt"](Data_Maybe.Just.create)(Data_Maybe.Nothing.value);
   var index = $foreign.indexImpl(Data_Maybe.Just.create)(Data_Maybe.Nothing.value);
   exports["index"] = index;
+  exports["updateAt"] = updateAt;
   exports["range"] = $foreign.range;
+  exports["replicate"] = $foreign.replicate;
   exports["length"] = $foreign.length;
   exports["snoc"] = $foreign.snoc;
   exports["concat"] = $foreign.concat;
@@ -4854,9 +4889,6 @@ var PS = {};
       December.value = new December();
       return December;
   })();
-  var showYear = new Data_Show.Show(function (v) {
-      return "(Year " + (Data_Show.show(Data_Show.showInt)(v) + ")");
-  });
   var showWeekday = new Data_Show.Show(function (v) {
       if (v instanceof Monday) {
           return "Monday";
@@ -4919,9 +4951,6 @@ var PS = {};
           return "December";
       };
       throw new Error("Failed pattern match at Data.Date.Component (line 101, column 1 - line 113, column 29): " + [ v.constructor.name ]);
-  });
-  var showDay = new Data_Show.Show(function (v) {
-      return "(Day " + (Data_Show.show(Data_Show.showInt)(v) + ")");
   });
   var ordYear = Data_Ord.ordInt;
   var ordDay = Data_Ord.ordInt;
@@ -5416,11 +5445,9 @@ var PS = {};
       };
   })());
   exports["boundedEnumYear"] = boundedEnumYear;
-  exports["showYear"] = showYear;
   exports["boundedEnumMonth"] = boundedEnumMonth;
   exports["showMonth"] = showMonth;
   exports["boundedEnumDay"] = boundedEnumDay;
-  exports["showDay"] = showDay;
   exports["boundedEnumWeekday"] = boundedEnumWeekday;
   exports["showWeekday"] = showWeekday;
 })(PS);
@@ -5471,7 +5498,6 @@ var PS = {};
   var Data_Date_Component = $PS["Data.Date.Component"];
   var Data_Enum = $PS["Data.Enum"];
   var Data_Maybe = $PS["Data.Maybe"];
-  var Data_Show = $PS["Data.Show"];
   var Data_Time_Duration = $PS["Data.Time.Duration"];                
   var $$Date = (function () {
       function $$Date(value0, value1, value2) {
@@ -5495,10 +5521,7 @@ var PS = {};
           return Data_Maybe.fromJust()(Data_Enum.toEnum(Data_Date_Component.boundedEnumWeekday)(7));
       };
       return Data_Maybe.fromJust()(Data_Enum.toEnum(Data_Date_Component.boundedEnumWeekday)(n));
-  };
-  var showDate = new Data_Show.Show(function (v) {
-      return "(Date " + (Data_Show.show(Data_Date_Component.showYear)(v.value0) + (" " + (Data_Show.show(Data_Date_Component.showMonth)(v.value1) + (" " + (Data_Show.show(Data_Date_Component.showDay)(v.value2) + ")")))));
-  });
+  }; 
   var diff = function (dictDuration) {
       return function (v) {
           return function (v1) {
@@ -5523,7 +5546,6 @@ var PS = {};
   exports["canonicalDate"] = canonicalDate;
   exports["weekday"] = weekday;
   exports["diff"] = diff;
-  exports["showDate"] = showDate;
 })(PS);
 (function(exports) {
   "use strict";
@@ -7366,6 +7388,7 @@ var PS = {};
   exports["ErrorAtIndex"] = ErrorAtIndex;
   exports["ErrorAtProperty"] = ErrorAtProperty;
   exports["readString"] = readString;
+  exports["readNumber"] = readNumber;
   exports["readInt"] = readInt;
   exports["readArray"] = readArray;
   exports["fail"] = fail;
@@ -9638,6 +9661,7 @@ var PS = {};
       return element("input")(props)([  ]);
   };                   
   var label = element("label");
+  var label_ = label([  ]);  
   var li = element("li");    
   var p = element("p");
   var p_ = p([  ]);
@@ -9649,6 +9673,7 @@ var PS = {};
   exports["div_"] = div_;
   exports["input"] = input;
   exports["label"] = label;
+  exports["label_"] = label_;
   exports["li"] = li;
   exports["p_"] = p_;
   exports["ul"] = ul;
@@ -10514,6 +10539,7 @@ var PS = {};
       };
   };
   var writeForeignString = new WriteForeign(Foreign.unsafeToForeign);
+  var writeForeignNumber = new WriteForeign(Foreign.unsafeToForeign);
   var writeForeignInt = new WriteForeign(Foreign.unsafeToForeign);    
   var writeForeignArray = function (dictWriteForeign) {
       return new WriteForeign(function (xs) {
@@ -10533,6 +10559,7 @@ var PS = {};
       };
   };
   var readString = new ReadForeign(Foreign.readString);
+  var readNumber = new ReadForeign(Foreign.readNumber);
   var readInt = new ReadForeign(Foreign.readInt);
   var readImpl = function (dict) {
       return dict.readImpl;
@@ -10669,6 +10696,7 @@ var PS = {};
   };
   exports["readJSON"] = readJSON;
   exports["writeJSON"] = writeJSON;
+  exports["readNumber"] = readNumber;
   exports["readInt"] = readInt;
   exports["readString"] = readString;
   exports["readArray"] = readArray;
@@ -10678,6 +10706,7 @@ var PS = {};
   exports["readFieldsNil"] = readFieldsNil;
   exports["writeForeignString"] = writeForeignString;
   exports["writeForeignInt"] = writeForeignInt;
+  exports["writeForeignNumber"] = writeForeignNumber;
   exports["writeForeignArray"] = writeForeignArray;
   exports["writeForeignMaybe"] = writeForeignMaybe;
   exports["recordWriteForeign"] = recordWriteForeign;
@@ -10764,6 +10793,7 @@ var PS = {};
   var Data_String_Common = $PS["Data.String.Common"];
   var Data_Symbol = $PS["Data.Symbol"];
   var Data_Time_Duration = $PS["Data.Time.Duration"];
+  var Data_Unit = $PS["Data.Unit"];
   var Effect = $PS["Effect"];
   var Effect_Aff = $PS["Effect.Aff"];
   var Effect_Aff_Class = $PS["Effect.Aff.Class"];
@@ -10827,6 +10857,42 @@ var PS = {};
       };
       return UpdateEmplacement;
   })();
+  var UpdateBaseEau = (function () {
+      function UpdateBaseEau(value0) {
+          this.value0 = value0;
+      };
+      UpdateBaseEau.create = function (value0) {
+          return new UpdateBaseEau(value0);
+      };
+      return UpdateBaseEau;
+  })();
+  var UpdateBaseEdf = (function () {
+      function UpdateBaseEdf(value0) {
+          this.value0 = value0;
+      };
+      UpdateBaseEdf.create = function (value0) {
+          return new UpdateBaseEdf(value0);
+      };
+      return UpdateBaseEdf;
+  })();
+  var UpdateNewerEau = (function () {
+      function UpdateNewerEau(value0) {
+          this.value0 = value0;
+      };
+      UpdateNewerEau.create = function (value0) {
+          return new UpdateNewerEau(value0);
+      };
+      return UpdateNewerEau;
+  })();
+  var UpdateNewerEdf = (function () {
+      function UpdateNewerEdf(value0) {
+          this.value0 = value0;
+      };
+      UpdateNewerEdf.create = function (value0) {
+          return new UpdateNewerEdf(value0);
+      };
+      return UpdateNewerEdf;
+  })();
   var AddTodo = (function () {
       function AddTodo() {
 
@@ -10856,8 +10922,8 @@ var PS = {};
       });
   };
   var update = function (state) {
-      var $19 = state.name === "";
-      if ($19) {
+      var $32 = state.name === "";
+      if ($32) {
           return state;
       };
       return {
@@ -10868,7 +10934,8 @@ var PS = {};
           elapsed: state.elapsed,
           baseDate: state.baseDate,
           newerDate: state.newerDate,
-          emplacement: state.emplacement
+          emplacement: state.emplacement,
+          stats: state.stats
       };
   };
   var timer = function (dictMonadAff) {
@@ -10902,16 +10969,45 @@ var PS = {};
           return "notes";
       }))(Simple_JSON.writeForeignArray(Simple_JSON.recordWriteForeign()(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
           return "text";
-      }))(Simple_JSON.writeForeignString)(Simple_JSON.nilWriteForeignFields)()()())))(Simple_JSON.nilWriteForeignFields)()()())()()())()()()))({
+      }))(Simple_JSON.writeForeignString)(Simple_JSON.nilWriteForeignFields)()()())))(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
+          return "stats";
+      }))(Simple_JSON.writeForeignArray(Simple_JSON.recordWriteForeign()(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
+          return "base";
+      }))(Simple_JSON.recordWriteForeign()(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
+          return "eau";
+      }))(Simple_JSON.writeForeignNumber)(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
+          return "edf";
+      }))(Simple_JSON.writeForeignNumber)(Simple_JSON.nilWriteForeignFields)()()())()()()))(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
+          return "newer";
+      }))(Simple_JSON.recordWriteForeign()(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
+          return "eau";
+      }))(Simple_JSON.writeForeignNumber)(Simple_JSON.consWriteForeignFields(new Data_Symbol.IsSymbol(function () {
+          return "edf";
+      }))(Simple_JSON.writeForeignNumber)(Simple_JSON.nilWriteForeignFields)()()())()()()))(Simple_JSON.nilWriteForeignFields)()()())()()())))(Simple_JSON.nilWriteForeignFields)()()())()()())()()())()()()))({
           notes: state.notes,
           baseDate: state.baseDate,
-          newerDate: state.newerDate
+          newerDate: state.newerDate,
+          stats: state.stats
       })));
+  };
+  var safeAt = function (xs) {
+      return function (ex) {
+          return function (n) {
+              var mx = Data_Array.index(xs)(n);
+              return Data_Maybe.maybe("0.0")(function (x) {
+                  return Data_Show.show(Data_Show.showNumber)(ex(x));
+              })(mx);
+          };
+      };
+  };
+  var raz = {
+      eau: 0.0,
+      edf: 0.0
   };
   var prove = function (str) {
       var ns = Data_String_Common.split("-")(str);
-      var $$int = function ($49) {
-          return Data_Int.round(Global.readFloat($49));
+      var $$int = function ($84) {
+          return Data_Int.round(Global.readFloat($84));
       };
       return Control_Apply.apply(Data_Maybe.applyMaybe)(Control_Apply.apply(Data_Maybe.applyMaybe)(Data_Functor.map(Data_Maybe.functorMaybe)(function (a) {
           return function (b) {
@@ -10943,8 +11039,8 @@ var PS = {};
   };
   var onEnter = function (a) {
       return Halogen_HTML_Events.onKeyDown(function (ev) {
-          var $24 = Web_UIEvent_KeyboardEvent.key(ev) === "Enter";
-          if ($24) {
+          var $37 = Web_UIEvent_KeyboardEvent.key(ev) === "Enter";
+          if ($37) {
               return new Data_Maybe.Just(a);
           };
           return Data_Maybe.Nothing.value;
@@ -10957,14 +11053,249 @@ var PS = {};
           elapsed: n,
           baseDate: Data_Maybe.Nothing.value,
           newerDate: Data_Maybe.Nothing.value,
-          emplacement: 1
+          emplacement: 1,
+          stats: Data_Array.replicate(9)({
+              base: raz,
+              newer: raz
+          })
+      };
+  };
+  var handleAction = function (dictMonadAff) {
+      return function (v) {
+          if (v instanceof Initialize) {
+              return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query_HalogenM.subscribe(timer(dictMonadAff)))(function () {
+                  return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
+              });
+          };
+          if (v instanceof UpdateName) {
+              return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                  var $39 = {};
+                  for (var $40 in v1) {
+                      if ({}.hasOwnProperty.call(v1, $40)) {
+                          $39[$40] = v1[$40];
+                      };
+                  };
+                  $39.name = v.value0;
+                  return $39;
+              });
+          };
+          if (v instanceof UpdateEmplacement) {
+              return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                  var $43 = {};
+                  for (var $44 in v1) {
+                      if ({}.hasOwnProperty.call(v1, $44)) {
+                          $43[$44] = v1[$44];
+                      };
+                  };
+                  $43.emplacement = Data_Int.round(Global.readFloat(v.value0));
+                  return $43;
+              });
+          };
+          if (v instanceof UpdateBaseEau) {
+              return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (st) {
+                  var ms = Data_Array.index(st.stats)(st.emplacement);
+                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                      var $47 = {};
+                      for (var $48 in v1) {
+                          if ({}.hasOwnProperty.call(v1, $48)) {
+                              $47[$48] = v1[$48];
+                          };
+                      };
+                      $47.stats = (function () {
+                          var ms$prime = Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(function (s) {
+                              return Data_Array.updateAt(st.emplacement)({
+                                  base: {
+                                      edf: s.base.edf,
+                                      eau: Global.readFloat(v.value0)
+                                  },
+                                  newer: s.newer
+                              })(st.stats);
+                          })(ms);
+                          return Data_Maybe.fromMaybe(st.stats)(ms$prime);
+                      })();
+                      return $47;
+                  }))(function () {
+                      return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
+                          var $85 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                          return function ($86) {
+                              return $85(toStorage($86));
+                          };
+                      })());
+                  });
+              });
+          };
+          if (v instanceof UpdateBaseEdf) {
+              return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (st) {
+                  var ms = Data_Array.index(st.stats)(st.emplacement);
+                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                      var $51 = {};
+                      for (var $52 in v1) {
+                          if ({}.hasOwnProperty.call(v1, $52)) {
+                              $51[$52] = v1[$52];
+                          };
+                      };
+                      $51.stats = (function () {
+                          var ms$prime = Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(function (s) {
+                              return Data_Array.updateAt(st.emplacement)({
+                                  base: {
+                                      eau: s.base.eau,
+                                      edf: Global.readFloat(v.value0)
+                                  },
+                                  newer: s.newer
+                              })(st.stats);
+                          })(ms);
+                          return Data_Maybe.fromMaybe(st.stats)(ms$prime);
+                      })();
+                      return $51;
+                  }))(function () {
+                      return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
+                          var $87 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                          return function ($88) {
+                              return $87(toStorage($88));
+                          };
+                      })());
+                  });
+              });
+          };
+          if (v instanceof UpdateNewerEau) {
+              return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (st) {
+                  var ms = Data_Array.index(st.stats)(st.emplacement);
+                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                      var $55 = {};
+                      for (var $56 in v1) {
+                          if ({}.hasOwnProperty.call(v1, $56)) {
+                              $55[$56] = v1[$56];
+                          };
+                      };
+                      $55.stats = (function () {
+                          var ms$prime = Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(function (s) {
+                              return Data_Array.updateAt(st.emplacement)({
+                                  newer: {
+                                      edf: s.newer.edf,
+                                      eau: Global.readFloat(v.value0)
+                                  },
+                                  base: s.base
+                              })(st.stats);
+                          })(ms);
+                          return Data_Maybe.fromMaybe(st.stats)(ms$prime);
+                      })();
+                      return $55;
+                  }))(function () {
+                      return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
+                          var $89 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                          return function ($90) {
+                              return $89(toStorage($90));
+                          };
+                      })());
+                  });
+              });
+          };
+          if (v instanceof UpdateNewerEdf) {
+              return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (st) {
+                  var ms = Data_Array.index(st.stats)(st.emplacement);
+                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                      var $59 = {};
+                      for (var $60 in v1) {
+                          if ({}.hasOwnProperty.call(v1, $60)) {
+                              $59[$60] = v1[$60];
+                          };
+                      };
+                      $59.stats = (function () {
+                          var ms$prime = Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(function (s) {
+                              return Data_Array.updateAt(st.emplacement)({
+                                  newer: {
+                                      eau: s.newer.eau,
+                                      edf: Global.readFloat(v.value0)
+                                  },
+                                  base: s.base
+                              })(st.stats);
+                          })(ms);
+                          return Data_Maybe.fromMaybe(st.stats)(ms$prime);
+                      })();
+                      return $59;
+                  }))(function () {
+                      return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
+                          var $91 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                          return function ($92) {
+                              return $91(toStorage($92));
+                          };
+                      })());
+                  });
+              });
+          };
+          if (v instanceof UpdateBase) {
+              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                  var $63 = {};
+                  for (var $64 in v1) {
+                      if ({}.hasOwnProperty.call(v1, $64)) {
+                          $63[$64] = v1[$64];
+                      };
+                  };
+                  $63.baseDate = prove(v.value0);
+                  return $63;
+              }))(function () {
+                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
+                      var $93 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                      return function ($94) {
+                          return $93(toStorage($94));
+                      };
+                  })());
+              });
+          };
+          if (v instanceof UpdateNewer) {
+              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                  var $67 = {};
+                  for (var $68 in v1) {
+                      if ({}.hasOwnProperty.call(v1, $68)) {
+                          $67[$68] = v1[$68];
+                      };
+                  };
+                  $67.newerDate = prove(v.value0);
+                  return $67;
+              }))(function () {
+                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
+                      var $95 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                      return function ($96) {
+                          return $95(toStorage($96));
+                      };
+                  })());
+              });
+          };
+          if (v instanceof AddTodo) {
+              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(update))(function () {
+                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
+                      var $97 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                      return function ($98) {
+                          return $97(toStorage($98));
+                      };
+                  })());
+              });
+          };
+          if (v instanceof DeleteAll) {
+              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(Data_Function["const"](initialState(v.value0))))(function () {
+                  return Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(toStorage(initialState(v.value0)));
+              });
+          };
+          if (v instanceof Tick) {
+              return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (state) {
+                  var $72 = {};
+                  for (var $73 in state) {
+                      if ({}.hasOwnProperty.call(state, $73)) {
+                          $72[$73] = state[$73];
+                      };
+                  };
+                  $72.elapsed = state.elapsed + 1 | 0;
+                  return $72;
+              });
+          };
+          throw new Error("Failed pattern match at Main (line 144, column 1 - line 146, column 54): " + [ v.constructor.name ]);
       };
   };
   var fromStorage = function __do() {
       var storedModel = Control_Bind.bind(Effect.bindEffect)(Control_Bind.bind(Effect.bindEffect)(Web_HTML.window)(Web_HTML_Window.localStorage))((function () {
-          var $50 = Data_Functor.map(Effect.functorEffect)(function (v) {
+          var $99 = Data_Functor.map(Effect.functorEffect)(function (v) {
               return Control_Bind.bind(Data_Maybe.bindMaybe)(v)((function () {
-                  var $53 = Simple_JSON.readJSON(Simple_JSON.readRecord()(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                  var $102 = Simple_JSON.readJSON(Simple_JSON.readRecord()(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
                       return "baseDate";
                   }))(Simple_JSON.readMaybe(Simple_JSON.readRecord()(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
                       return "day";
@@ -10984,15 +11315,29 @@ var PS = {};
                       return "notes";
                   }))(Simple_JSON.readArray(Simple_JSON.readRecord()(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
                       return "text";
-                  }))(Simple_JSON.readString)(Simple_JSON.readFieldsNil)()())))(Simple_JSON.readFieldsNil)()())()())()()));
-                  return function ($54) {
-                      return Data_Either.hush($53($54));
+                  }))(Simple_JSON.readString)(Simple_JSON.readFieldsNil)()())))(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                      return "stats";
+                  }))(Simple_JSON.readArray(Simple_JSON.readRecord()(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                      return "base";
+                  }))(Simple_JSON.readRecord()(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                      return "eau";
+                  }))(Simple_JSON.readNumber)(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                      return "edf";
+                  }))(Simple_JSON.readNumber)(Simple_JSON.readFieldsNil)()())()()))(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                      return "newer";
+                  }))(Simple_JSON.readRecord()(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                      return "eau";
+                  }))(Simple_JSON.readNumber)(Simple_JSON.readFieldsCons(new Data_Symbol.IsSymbol(function () {
+                      return "edf";
+                  }))(Simple_JSON.readNumber)(Simple_JSON.readFieldsNil)()())()()))(Simple_JSON.readFieldsNil)()())()())))(Simple_JSON.readFieldsNil)()())()())()())()()));
+                  return function ($103) {
+                      return Data_Either.hush($102($103));
                   };
               })());
           });
-          var $51 = Web_Storage_Storage.getItem(storageKey);
-          return function ($52) {
-              return $50($51($52));
+          var $100 = Web_Storage_Storage.getItem(storageKey);
+          return function ($101) {
+              return $99($100($101));
           };
       })())();
       if (storedModel instanceof Data_Maybe.Nothing) {
@@ -11004,131 +11349,82 @@ var PS = {};
               notes: storedModel.value0.notes,
               baseDate: storedModel.value0.baseDate,
               newerDate: storedModel.value0.newerDate,
+              stats: storedModel.value0.stats,
               elapsed: v.elapsed,
               emplacement: v.emplacement,
               name: v.name
           };
       };
-      throw new Error("Failed pattern match at Main (line 112, column 10 - line 118, column 10): " + [ storedModel.constructor.name ]);
-  };
-  var handleAction = function (dictMonadAff) {
-      return function (v) {
-          if (v instanceof Initialize) {
-              return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query_HalogenM.subscribe(timer(dictMonadAff)))(function () {
-                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(fromStorage))(Control_Monad_State_Class.put(Halogen_Query_HalogenM.monadStateHalogenM));
-              });
-          };
-          if (v instanceof UpdateName) {
-              return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                  var $28 = {};
-                  for (var $29 in v1) {
-                      if ({}.hasOwnProperty.call(v1, $29)) {
-                          $28[$29] = v1[$29];
-                      };
-                  };
-                  $28.name = v.value0;
-                  return $28;
-              });
-          };
-          if (v instanceof UpdateEmplacement) {
-              return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                  var $32 = {};
-                  for (var $33 in v1) {
-                      if ({}.hasOwnProperty.call(v1, $33)) {
-                          $32[$33] = v1[$33];
-                      };
-                  };
-                  $32.emplacement = Data_Int.round(Global.readFloat(v.value0));
-                  return $32;
-              });
-          };
-          if (v instanceof UpdateBase) {
-              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                  var $36 = {};
-                  for (var $37 in v1) {
-                      if ({}.hasOwnProperty.call(v1, $37)) {
-                          $36[$37] = v1[$37];
-                      };
-                  };
-                  $36.baseDate = prove(v.value0);
-                  return $36;
-              }))(function () {
-                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
-                      var $55 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
-                      return function ($56) {
-                          return $55(toStorage($56));
-                      };
-                  })());
-              });
-          };
-          if (v instanceof UpdateNewer) {
-              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                  var $40 = {};
-                  for (var $41 in v1) {
-                      if ({}.hasOwnProperty.call(v1, $41)) {
-                          $40[$41] = v1[$41];
-                      };
-                  };
-                  $40.newerDate = prove(v.value0);
-                  return $40;
-              }))(function () {
-                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
-                      var $57 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
-                      return function ($58) {
-                          return $57(toStorage($58));
-                      };
-                  })());
-              });
-          };
-          if (v instanceof AddTodo) {
-              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(update))(function () {
-                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))((function () {
-                      var $59 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
-                      return function ($60) {
-                          return $59(toStorage($60));
-                      };
-                  })());
-              });
-          };
-          if (v instanceof DeleteAll) {
-              return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(Data_Function["const"](initialState(v.value0))))(function () {
-                  return Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(toStorage(initialState(v.value0)));
-              });
-          };
-          if (v instanceof Tick) {
-              return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (state) {
-                  var $45 = {};
-                  for (var $46 in state) {
-                      if ({}.hasOwnProperty.call(state, $46)) {
-                          $45[$46] = state[$46];
-                      };
-                  };
-                  $45.elapsed = state.elapsed + 1 | 0;
-                  return $45;
-              });
-          };
-          throw new Error("Failed pattern match at Main (line 129, column 1 - line 131, column 54): " + [ v.constructor.name ]);
-      };
+      throw new Error("Failed pattern match at Main (line 126, column 10 - line 133, column 10): " + [ storedModel.constructor.name ]);
   };
   var empl = function (n) {
-      return [ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.name("emplacements"), Halogen_HTML_Properties.id_("empl" + Data_Show.show(Data_Show.showInt)(n)), Halogen_HTML_Properties.value(Data_Show.show(Data_Show.showInt)(n)), Halogen_HTML_Events.onValueInput(function ($61) {
-          return Data_Maybe.Just.create(UpdateEmplacement.create($61));
+      return [ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.name("emplacements"), Halogen_HTML_Properties.id_("empl" + Data_Show.show(Data_Show.showInt)(n)), Halogen_HTML_Properties.value(Data_Show.show(Data_Show.showInt)(n)), Halogen_HTML_Events.onValueInput(function ($104) {
+          return Data_Maybe.Just.create(UpdateEmplacement.create($104));
       }) ]), Halogen_HTML_Elements.label([ Halogen_HTML_Properties["for"]("empl" + Data_Show.show(Data_Show.showInt)(n)) ])([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(n)) ]) ];
+  };
+  var dateValuesToValue = function (mvs) {
+      return Data_Maybe.fromMaybe("")(Data_Functor.map(Data_Maybe.functorMaybe)(function (v) {
+          return Data_Show.show(Data_Show.showInt)(v.year) + ("-" + ((function () {
+              var $78 = v.month < 10;
+              if ($78) {
+                  return "0";
+              };
+              return "";
+          })() + (Data_Show.show(Data_Show.showInt)(v.month) + ("-" + ((function () {
+              var $79 = v.day < 10;
+              if ($79) {
+                  return "0";
+              };
+              return "";
+          })() + Data_Show.show(Data_Show.showInt)(v.day))))));
+      })(mvs));
   };
   var render = function (state) {
       var hello = (function () {
-          var $48 = state.name === "";
-          if ($48) {
+          var $83 = state.name === "";
+          if ($83) {
               return Halogen_HTML_Elements.p_([  ]);
           };
           return Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Hello " + state.name) ]);
       })();
-      return Halogen_HTML_Elements.div_(Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Started " + (Data_Show.show(Data_Show.showInt)(state.elapsed) + " seconds ago.")) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Base : " + prettyDate(state.baseDate)) ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputDate.value), Halogen_HTML_Properties.value("2021-03-14"), Halogen_HTML_Events.onValueInput(function ($62) {
-          return Data_Maybe.Just.create(UpdateBase.create($62));
-      }) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Newer : " + Data_Show.show(Data_Maybe.showMaybe(Data_Date.showDate))(valuesToDate(state.newerDate))) ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputDate.value), Halogen_HTML_Events.onValueInput(function ($63) {
-          return Data_Maybe.Just.create(UpdateNewer.create($63));
-      }) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Diff : " + (Data_Show.show(Data_Maybe.showMaybe(Data_Time_Duration.showDays))(Control_Apply.apply(Data_Maybe.applyMaybe)(Data_Functor.map(Data_Maybe.functorMaybe)(Data_Date.diff(Data_Time_Duration.durationDays))(valuesToDate(state.newerDate)))(valuesToDate(state.baseDate))) + " days")) ]) ])(Data_Semigroup.append(Data_Semigroup.semigroupArray)(Data_Array.concat(Data_Functor.map(Data_Functor.functorArray)(empl)(Data_Array.range(1)(8))))([ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Emplacement " + Data_Show.show(Data_Show.showInt)(state.emplacement)) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("What is your name?") ]), hello, Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputText.value), Halogen_HTML_Properties.value(state.name), Halogen_HTML_Properties.placeholder("type note"), Halogen_HTML_Properties.autofocus(true), Halogen_HTML_Events.onValueInput(function ($64) {
-          return Data_Maybe.Just.create(UpdateName.create($64));
+      return Halogen_HTML_Elements.div_(Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Started " + (Data_Show.show(Data_Show.showInt)(state.elapsed) + " seconds ago.")) ]) ])(Data_Semigroup.append(Data_Semigroup.semigroupArray)(Data_Array.concat(Data_Functor.map(Data_Functor.functorArray)(empl)(Data_Array.range(1)(8))))([ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Emplacement " + Data_Show.show(Data_Show.showInt)(state.emplacement)) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Base : " + prettyDate(state.baseDate)) ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputDate.value), Halogen_HTML_Properties.value(dateValuesToValue(state.baseDate)), Halogen_HTML_Events.onValueInput(function ($105) {
+          return Data_Maybe.Just.create(UpdateBase.create($105));
+      }) ]), Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Eau : ") ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputNumber.value), Halogen_HTML_Properties.value(safeAt(state.stats)(function ($106) {
+          return (function (v) {
+              return v.eau;
+          })((function (v) {
+              return v.base;
+          })($106));
+      })(state.emplacement)), Halogen_HTML_Events.onValueInput(function ($107) {
+          return Data_Maybe.Just.create(UpdateBaseEau.create($107));
+      }) ]), Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Edf : ") ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputNumber.value), Halogen_HTML_Properties.value(safeAt(state.stats)(function ($108) {
+          return (function (v) {
+              return v.edf;
+          })((function (v) {
+              return v.base;
+          })($108));
+      })(state.emplacement)), Halogen_HTML_Events.onValueInput(function ($109) {
+          return Data_Maybe.Just.create(UpdateBaseEdf.create($109));
+      }) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Newer : " + prettyDate(state.newerDate)) ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputDate.value), Halogen_HTML_Properties.value(dateValuesToValue(state.newerDate)), Halogen_HTML_Events.onValueInput(function ($110) {
+          return Data_Maybe.Just.create(UpdateNewer.create($110));
+      }) ]), Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Eau : ") ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputNumber.value), Halogen_HTML_Properties.value(safeAt(state.stats)(function ($111) {
+          return (function (v) {
+              return v.eau;
+          })((function (v) {
+              return v.newer;
+          })($111));
+      })(state.emplacement)), Halogen_HTML_Events.onValueInput(function ($112) {
+          return Data_Maybe.Just.create(UpdateNewerEau.create($112));
+      }) ]), Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Edf : ") ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputNumber.value), Halogen_HTML_Properties.value(safeAt(state.stats)(function ($113) {
+          return (function (v) {
+              return v.edf;
+          })((function (v) {
+              return v.newer;
+          })($113));
+      })(state.emplacement)), Halogen_HTML_Events.onValueInput(function ($114) {
+          return Data_Maybe.Just.create(UpdateNewerEdf.create($114));
+      }) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Diff : " + (Data_Show.show(Data_Maybe.showMaybe(Data_Time_Duration.showDays))(Control_Apply.apply(Data_Maybe.applyMaybe)(Data_Functor.map(Data_Maybe.functorMaybe)(Data_Date.diff(Data_Time_Duration.durationDays))(valuesToDate(state.newerDate)))(valuesToDate(state.baseDate))) + " days")) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("What is your name?") ]), hello, Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputText.value), Halogen_HTML_Properties.value(state.name), Halogen_HTML_Properties.placeholder("type note"), Halogen_HTML_Properties.autofocus(true), Halogen_HTML_Events.onValueInput(function ($115) {
+          return Data_Maybe.Just.create(UpdateName.create($115));
       }), onEnter(AddTodo.value) ]), Halogen_HTML_Elements.ul([  ])(Data_Functor.map(Data_Functor.functorArray)(function (note) {
           return Halogen_HTML_Elements.li([  ])([ Halogen_HTML_Elements.label([  ])([ Halogen_HTML_Core.text(note.text) ]) ]);
       })(state.notes)), Halogen_HTML_Elements.button([ Halogen_HTML_Events.onClick(Data_Function["const"](Data_Maybe.Just.create(new DeleteAll(state.elapsed)))) ])([ Halogen_HTML_Core.text("Clear All") ]) ])));
@@ -11147,11 +11443,16 @@ var PS = {};
       });
   };
   var main = Halogen_Aff_Util.runHalogenAff(Control_Bind.bind(Effect_Aff.bindAff)(Halogen_Aff_Util.awaitBody)(Halogen_VDom_Driver.runUI(page(Effect_Aff_Class.monadAffAff))(0)));
+  exports["raz"] = raz;
   exports["Initialize"] = Initialize;
   exports["UpdateName"] = UpdateName;
   exports["UpdateBase"] = UpdateBase;
   exports["UpdateNewer"] = UpdateNewer;
   exports["UpdateEmplacement"] = UpdateEmplacement;
+  exports["UpdateBaseEau"] = UpdateBaseEau;
+  exports["UpdateBaseEdf"] = UpdateBaseEdf;
+  exports["UpdateNewerEau"] = UpdateNewerEau;
+  exports["UpdateNewerEdf"] = UpdateNewerEdf;
   exports["AddTodo"] = AddTodo;
   exports["DeleteAll"] = DeleteAll;
   exports["Tick"] = Tick;
@@ -11165,9 +11466,11 @@ var PS = {};
   exports["handleAction"] = handleAction;
   exports["onEnter"] = onEnter;
   exports["valuesToDate"] = valuesToDate;
+  exports["dateValuesToValue"] = dateValuesToValue;
   exports["prettyDate"] = prettyDate;
   exports["prove"] = prove;
   exports["empl"] = empl;
+  exports["safeAt"] = safeAt;
   exports["render"] = render;
   exports["main"] = main;
 })(PS);
