@@ -44,13 +44,15 @@ type State =
   , notes ∷ Array Note
   , elapsed :: Int
   , baseDate :: Maybe DateValues
+  , newerDate :: Maybe DateValues
   , emplacement :: Int
   }
 
 data Action 
   = Initialize
   | UpdateName String
-  | UpdateDate String
+  | UpdateBase String
+  | UpdateNewer String
   | UpdateEmplacement String
   | AddTodo
   | DeleteAll Int
@@ -73,6 +75,7 @@ initialState n =
   , notes: []
   , elapsed: n
   , baseDate: Nothing
+  , newerDate: Nothing
   , emplacement: 1
   }
 
@@ -91,7 +94,10 @@ toStorage :: State -> Effect Unit
 toStorage state =
   DOM.window
       >>= DOM.localStorage
-      >>= Storage.setItem storageKey (writeJSON { notes: state.notes, baseDate: state.baseDate })
+      >>= Storage.setItem storageKey (writeJSON { notes: state.notes
+                                                , baseDate: state.baseDate 
+                                                , newerDate: state.newerDate 
+                                                })
 
 fromStorage :: Effect State
 fromStorage = do
@@ -99,12 +105,16 @@ fromStorage = do
     DOM.window
       >>= DOM.localStorage
       >>= Storage.getItem storageKey
-      >>> map (_ >>= (readJSON :: String -> E { notes :: Array Note, baseDate :: Maybe DateValues }) >>> hush)
+      >>> map (_ >>= (readJSON :: String -> E { notes :: Array Note
+                                              , baseDate :: Maybe DateValues 
+                                              , newerDate :: Maybe DateValues 
+                                              }) >>> hush)
   pure $ case storedModel of
       Nothing → initialState 0
       Just sm → (initialState 0)
         { notes = sm.notes
         , baseDate = sm.baseDate
+        , newerDate = sm.newerDate
         }
 
 timer :: forall m. MonadAff m => EventSource m Action
@@ -129,8 +139,12 @@ handleAction ( UpdateName newName ) =
 handleAction ( UpdateEmplacement newEmpl ) = 
   H.modify_ _{ emplacement = round $ readFloat newEmpl }
 
-handleAction ( UpdateDate iAmADate ) = do
+handleAction ( UpdateBase iAmADate ) = do
   H.modify_ _{ baseDate = prove iAmADate }
+  H.get >>= (toStorage >>> H.liftEffect) 
+
+handleAction ( UpdateNewer iAmADate ) = do
+  H.modify_ _{ newerDate = prove iAmADate }
   H.get >>= (toStorage >>> H.liftEffect) 
 
 handleAction ( AddTodo ) = do
@@ -150,16 +164,10 @@ onEnter a = HE.onKeyDown \ev →
     then Just a
     else Nothing
 
-today :: Maybe Date
-today = canonicalDate <$> toEnum 2021 <*> toEnum 2 <*> toEnum 1
-
 valuesToDate :: Maybe DateValues -> Maybe DateTime
 valuesToDate mvs = mvs >>= \{year, month, day} ->  
    DateTime <$> (canonicalDate <$> toEnum year <*> toEnum month <*> toEnum day) 
             <*> (Time <$> toEnum 8 <*> toEnum 30 <*> toEnum 0 <*> toEnum 0)
-
-now :: Maybe DateTime
-now = DateTime <$> today <*> (Time <$> toEnum 8 <*> toEnum 30 <*> toEnum 0 <*> toEnum 0)
 
 prove :: String -> Maybe DateValues
 prove str = 
@@ -182,10 +190,13 @@ empl n =
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
     HH.div_ $ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
-            , HH.p_ [ HH.text $ "Today : " <> show today ]
             , HH.p_ [ HH.text $ "Base : " <> show (valuesToDate state.baseDate) ]
             , HH.input [ HP.type_ HP.InputDate
-                       , HE.onValueInput $ Just <<< UpdateDate
+                       , HE.onValueInput $ Just <<< UpdateBase
+                       ]
+            , HH.p_ [ HH.text $ "Newer : " <> show (valuesToDate state.newerDate) ]
+            , HH.input [ HP.type_ HP.InputDate
+                       , HE.onValueInput $ Just <<< UpdateNewer
                        ]
             ]
             <>
