@@ -168,29 +168,30 @@ prove str =
   in (\ a b c -> {year: int a, month: int b, day: int c}) 
     <$> (ns Array.!! 0) <*> (ns Array.!! 1) <*> (ns Array.!! 2)
 
+empl :: Int -> _
+empl n = 
+  [ HH.input  [ HP.type_ HP.InputRadio
+              , HP.name "emplacements"
+              , HP.id_ $ "empl" <> show n
+              , HP.value $ show n
+              , HE.onValueInput $ Just <<< UpdateEmplacement
+              ]
+  , HH.label [ HP.for $ "empl" <> show n ] [HH.text $ show n]
+  ]
+
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
-    HH.div_ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
+    HH.div_ $ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
             , HH.p_ [ HH.text $ "Today : " <> show today ]
             , HH.p_ [ HH.text $ "Base : " <> show (valuesToDate state.baseDate) ]
             , HH.input [ HP.type_ HP.InputDate
                        , HE.onValueInput $ Just <<< UpdateDate
                        ]
-            , HH.input [ HP.type_ HP.InputRadio
-                       , HP.name "emplacements"
-                       , HP.id_ "empl1"
-                       , HP.value "1"
-                       , HE.onValueInput $ Just <<< UpdateEmplacement
-                       ]
-            , HH.label [ HP.for "empl1" ] [HH.text "1"]
-            , HH.input [ HP.type_ HP.InputRadio
-                       , HP.name "emplacements"
-                       , HP.id_ "empl2"
-                       , HP.value "2"
-                       , HE.onValueInput $ Just <<< UpdateEmplacement
-                       ]
-            , HH.label [ HP.for "empl2" ] [HH.text "2"]
-            , HH.p_ [ HH.text $ "Emplacement " <> show state.emplacement ]
+            ]
+            <>
+            (Array.concat $ empl <$> 1 Array... 8)
+            <>
+            [ HH.p_ [ HH.text $ "Emplacement " <> show state.emplacement ]
             , HH.p_ [ HH.text "What is your name?" ]
             , hello
             , HH.input [ HP.type_ HP.InputText
