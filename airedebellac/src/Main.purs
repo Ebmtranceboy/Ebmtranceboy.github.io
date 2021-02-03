@@ -12,7 +12,6 @@ import Data.Int (round)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.String (Pattern (..), split)
 import Data.Time.Duration (Days)
-import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff
@@ -43,8 +42,6 @@ type Fluid = { eau :: Number, edf :: Number }
 
 raz = { eau: 0.0, edf: 0.0 } :: Fluid
 
-type Stat = { base :: Fluid, newer :: Fluid }
-
 type State = 
   { name ∷ String 
   , notes ∷ Array Note
@@ -52,7 +49,8 @@ type State =
   , baseDate :: Maybe DateValues
   , newerDate :: Maybe DateValues
   , emplacement :: Int
-  , stats :: Array Stat
+  , base :: Array Fluid
+  , newer :: Array Fluid
   }
 
 data Action 
@@ -88,7 +86,8 @@ initialState n =
   , baseDate: Nothing
   , newerDate: Nothing
   , emplacement: 1
-  , stats: Array.replicate 9 { base: raz, newer: raz }
+  , base: Array.replicate 9 raz
+  , newer: Array.replicate 9 raz
   }
 
 update :: State -> State
@@ -103,14 +102,16 @@ storageKey ∷ String
 storageKey = "notes"
 
 toStorage :: State -> Effect Unit
-toStorage state =
-  DOM.window
-      >>= DOM.localStorage
-      >>= Storage.setItem storageKey (writeJSON { notes: state.notes
+toStorage state = do
+  let json = writeJSON { notes: state.notes
                                                 , baseDate: state.baseDate 
                                                 , newerDate: state.newerDate
-                                                , stats: state.stats 
-                                                })
+                                                , base: state.base
+                                                , newer: state.newer
+                                                }
+  DOM.window
+      >>= DOM.localStorage
+      >>= Storage.setItem storageKey json
 
 fromStorage :: Effect State
 fromStorage = do
@@ -121,7 +122,8 @@ fromStorage = do
       >>> map (_ >>= (readJSON :: String -> E { notes :: Array Note
                                               , baseDate :: Maybe DateValues 
                                               , newerDate :: Maybe DateValues 
-                                              , stats :: Array Stat
+                                              , base :: Array Fluid
+                                              , newer :: Array Fluid
                                               }) >>> hush)
   pure $ case storedModel of
       Nothing → initialState 0
@@ -129,7 +131,8 @@ fromStorage = do
         { notes = sm.notes
         , baseDate = sm.baseDate
         , newerDate = sm.newerDate
-        , stats = sm.stats
+        , base = sm.base
+        , newer = sm.newer
         }
 
 timer :: forall m. MonadAff m => EventSource m Action
@@ -146,7 +149,7 @@ handleAction :: forall m
   => Action -> H.HalogenM State Action () Void m Unit
 handleAction ( Initialize ) = do
   _ <- H.subscribe timer
-  --H.liftEffect fromStorage >>= H.put
+  H.liftEffect fromStorage >>= H.put
   pure unit
   
 handleAction ( UpdateName newName ) = 
@@ -158,65 +161,60 @@ handleAction ( UpdateEmplacement newEmpl ) =
 handleAction ( UpdateBaseEau newEau ) = do
   st <- H.get
   let e = st.emplacement
-      ms = st.stats Array.!! e
-  H.modify_ _{ stats = 
-    let ms' = (\s -> Array.updateAt e 
-                { base: { edf: s.base.edf
-                        , eau: readFloat newEau
-                        }
-                , newer: s.newer
-                } st.stats
-              ) =<< ms
-      in fromMaybe st.stats ms'
+      mb = st.base Array.!! e
+  H.modify_ _{ base = 
+    let mbs = (\b -> Array.updateAt e 
+                { edf: b.edf
+                , eau: readFloat newEau
+                }
+                st.base
+              ) =<< mb
+      in fromMaybe st.base mbs
       }
   H.get >>= (toStorage >>> H.liftEffect) 
-
 
 handleAction ( UpdateBaseEdf newEdf ) = do
   st <- H.get
   let e = st.emplacement
-      ms = st.stats Array.!! e
-  H.modify_ _{ stats = 
-    let ms' = (\s -> Array.updateAt e 
-                { base: { eau: s.base.eau
-                        , edf: readFloat newEdf
-                        }
-                , newer: s.newer
-                } st.stats
-              ) =<< ms
-      in fromMaybe st.stats ms'
+      mb = st.base Array.!! e
+  H.modify_ _{ base = 
+    let mbs = (\b -> Array.updateAt e 
+                { eau: b.eau
+                , edf: readFloat newEdf
+                }
+                st.base
+              ) =<< mb
+      in fromMaybe st.base mbs
       }
   H.get >>= (toStorage >>> H.liftEffect) 
 
 handleAction ( UpdateNewerEau newEau ) = do
   st <- H.get
   let e = st.emplacement
-      ms = st.stats Array.!! e
-  H.modify_ _{ stats = 
-    let ms' = (\s -> Array.updateAt e 
-                { newer: { edf: s.newer.edf
-                         , eau: readFloat newEau
-                         }
-                , base: s.base
-                } st.stats
-              ) =<< ms
-      in fromMaybe st.stats ms'
+      mn = st.newer Array.!! e
+  H.modify_ _{ newer = 
+    let mns = (\n -> Array.updateAt e 
+                { edf: n.edf
+                , eau: readFloat newEau
+                }
+                st.newer
+              ) =<< mn
+      in fromMaybe st.newer mns
       }
   H.get >>= (toStorage >>> H.liftEffect) 
 
 handleAction ( UpdateNewerEdf newEdf ) = do
   st <- H.get
   let e = st.emplacement
-      ms = st.stats Array.!! e
-  H.modify_ _{ stats = 
-    let ms' = (\s -> Array.updateAt e 
-                { newer: { eau: s.newer.eau
-                         , edf: readFloat newEdf
-                         }
-                , base: s.base
-                } st.stats
-              ) =<< ms
-      in fromMaybe st.stats ms'
+      mn = st.newer Array.!! e
+  H.modify_ _{ newer = 
+    let mns = (\n -> Array.updateAt e 
+                { eau: n.eau
+                , edf: readFloat newEdf
+                }
+                st.newer
+              ) =<< mn
+      in fromMaybe st.newer mns
       }
   H.get >>= (toStorage >>> H.liftEffect) 
 
@@ -287,7 +285,7 @@ empl n =
   , HH.label [ HP.for $ "empl" <> show n ] [HH.text $ show n]
   ]
 
-safeAt :: Array Stat -> (Stat -> Number) -> Int -> String
+safeAt :: Array Fluid -> (Fluid -> Number) -> Int -> String
 safeAt xs ex n =
   let mx = xs Array.!! n
   in maybe "0.0" (\x -> show $ ex x) mx
@@ -307,12 +305,12 @@ render state =
                        ]
             , HH.label_ [ HH.text "Eau : "]
             , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ safeAt state.stats (_.base >>> _.eau) state.emplacement
+                       , HP.value $ safeAt state.base (_.eau) state.emplacement
                        , HE.onValueInput $ Just <<< UpdateBaseEau
                        ]
             , HH.label_ [ HH.text "Edf : "]
             , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ safeAt state.stats (_.base >>> _.edf) state.emplacement
+                       , HP.value $ safeAt state.base (_.edf) state.emplacement
                        , HE.onValueInput $ Just <<< UpdateBaseEdf
                        ]
             , HH.p_ [ HH.text $ "Newer : " <> prettyDate state.newerDate ]
@@ -322,12 +320,12 @@ render state =
                        ]
             , HH.label_ [ HH.text "Eau : "]
             , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ safeAt state.stats (_.newer >>> _.eau) state.emplacement
+                       , HP.value $ safeAt state.newer (_.eau) state.emplacement
                        , HE.onValueInput $ Just <<< UpdateNewerEau
                        ]
             , HH.label_ [ HH.text "Edf : "]
             , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ safeAt state.stats (_.newer >>> _.edf) state.emplacement
+                       , HP.value $ safeAt state.newer (_.edf) state.emplacement
                        , HE.onValueInput $ Just <<< UpdateNewerEdf
                        ]
             
