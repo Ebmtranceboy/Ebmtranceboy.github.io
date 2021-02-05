@@ -9,6 +9,7 @@ You can edit this file as you like.
   , "effect"
   , "event"
   , "halogen"
+  , "profunctor-lenses"
   , "psci-support"
   , "simple-json"
   ]
