@@ -9,7 +9,7 @@ import Data.Date (Date, Month, canonicalDate, diff, weekday)
 import Data.Enum (toEnum)
 import Data.Either (hush)
 import Data.Int (round)
-import Data.Lens (lens, Lens, over, set)
+import Data.Lens (lens, Lens, over, set, view)
 import Data.Lens.Index (ix)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.String (Pattern (..), split)
@@ -33,6 +33,9 @@ import Web.HTML (window) as DOM
 import Web.HTML.Window (localStorage) as DOM
 import Web.Storage.Storage (getItem, setItem) as Storage
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, key) as Event
+import Web.UIEvent.FocusEvent (FocusEvent)
+import Web.Event.Internal.Types (Event)
+import DOM.HTML.Indexed.InputType (InputType)
 
 type Note =
   { text ∷ String
@@ -54,6 +57,9 @@ type State =
   , base :: Array Fluid
   , newer :: Array Fluid
   }
+  
+type PeriodL = Lens State State (Array Fluid) (Array Fluid)
+type FluidL = Lens Fluid Fluid Number Number
 
 data Action
   = Initialize
@@ -61,8 +67,9 @@ data Action
   | UpdateBase String
   | UpdateNewer String
   | UpdateEmplacement String
-  | UpdateFluid (Lens State State (Array Fluid) (Array Fluid)) 
-                (Lens Fluid Fluid Number Number) String
+  | UpdateFluid PeriodL FluidL String
+  | GotFocus PeriodL FluidL
+  | LostFocus PeriodL FluidL
   | AddTodo
   | DeleteAll Int
   | Tick
@@ -152,6 +159,10 @@ handleAction :: forall m
 handleAction ( Initialize ) = do
   _ <- H.subscribe timer
   H.liftEffect fromStorage >>= H.put
+  handleAction ( LostFocus _base _eau )
+  handleAction ( LostFocus _base _edf )
+  handleAction ( LostFocus _newer _eau )
+  handleAction ( LostFocus _newer _edf )
   
 handleAction ( UpdateName newName ) = 
   H.modify_ _{ name = newName }
@@ -159,12 +170,18 @@ handleAction ( UpdateName newName ) =
 handleAction ( UpdateEmplacement newEmpl ) = 
   H.modify_ _{ emplacement = round $ readFloat newEmpl }
 
-handleAction ( UpdateFluid period fluid strval) = do
+handleAction ( UpdateFluid period fluid strval ) = do
   state <- H.get
   let e = state.emplacement
   H.modify_ $ over period $ over (ix e) $ set fluid $ readFloat strval
   H.get >>= (toStorage >>> H.liftEffect) 
 
+handleAction ( GotFocus period fluid ) = do
+  H.modify_ $ over period $ over (ix 0) $ set fluid 1.0
+
+handleAction ( LostFocus period fluid ) = do
+  H.modify_ $ over period $ over (ix 0) $ set fluid (-1.0)
+  
 handleAction ( UpdateBase iAmADate ) = do
   H.modify_ _{ baseDate = prove iAmADate }
   H.get >>= (toStorage >>> H.liftEffect) 
@@ -235,29 +252,51 @@ empl n =
   , HH.label [ HP.for $ "empl" <> show n ] [HH.text $ show n]
   ]
 
-safeAt :: Array Fluid -> (Fluid -> Number) -> Int -> Number
-safeAt xs ex n =
-  let mx = xs Array.!! n
-  in maybe 0.0 ex mx
+safeAt :: State -> PeriodL -> FluidL -> Int -> Number
+safeAt state period fluid n =
+  let mx = (view fluid <$> (view (ix n) $ Array.singleton <$> (view period state))) Array.!! 0
+  in fromMaybe 0.0 mx
 
-_base :: Lens State State (Array Fluid) (Array Fluid)
+_base :: PeriodL
 _base = lens _.base $ _ { base = _ }
 
-_newer :: Lens State State (Array Fluid) (Array Fluid)
+_newer :: PeriodL
 _newer = lens _.newer $ _ { newer = _ }
 
-_eau :: Lens Fluid Fluid Number Number
+_eau :: FluidL
 _eau = lens _.eau $ _ { eau = _ }
 
-_edf :: Lens Fluid Fluid Number Number
+_edf :: FluidL
 _edf = lens _.edf $ _ { edf = _ }
+
+inputFluid :: forall r. State -> PeriodL -> FluidL -> Array (HP.IProp ( onBlur :: FocusEvent 
+                           , onFocus :: FocusEvent
+                           , onInput :: Event     
+                           , type :: InputType    
+                           , value :: String      
+                           | r                  
+                           )  Action)
+inputFluid state period fluid = 
+  [ HP.type_ HP.InputNumber
+  , HE.onValueInput $ Just <<< ( UpdateFluid period fluid )
+  , HE.onFocus $ const $ Just $ GotFocus period fluid 
+  , HE.onBlur $ const $ Just $ LostFocus period fluid 
+  ]
+  <>
+  if safeAt state period fluid 0 < 0.0
+    then
+      [ HP.value $ show
+                 $ safeAt state period fluid state.emplacement
+      ]
+    else []
+
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
-  let consoEau = ( safeAt state.newer (_.eau) state.emplacement
-                 - safeAt state.base (_.eau) state.emplacement) * 3.976
-      consoEdf = ( safeAt state.newer (_.edf) state.emplacement
-                 - safeAt state.base (_.edf) state.emplacement) * 0.067
+  let consoEau = ( safeAt state _newer _eau state.emplacement
+                 - safeAt state _base _eau state.emplacement) * 3.976
+      consoEdf = ( safeAt state _newer _edf state.emplacement
+                 - safeAt state _base _edf state.emplacement) * 0.067
       Days nbDays = fromMaybe (Days 0.0) $ diff <$> valuesToDate state.newerDate 
                                                 <*> valuesToDate state.baseDate
       consoEmpl = nbDays * 2.0
@@ -273,30 +312,18 @@ render state = do
                        , HE.onValueInput $ Just <<< UpdateBase
                        ]
             , HH.label_ [ HH.text "Eau : "]
-            , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ show $ safeAt state.base (_.eau) state.emplacement
-                       , HE.onValueInput $ Just <<< ( UpdateFluid _base _eau )
-                       ]
+            , HH.input $ inputFluid state _base _eau      
             , HH.label_ [ HH.text "Edf : "]
-            , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ show $ safeAt state.base (_.edf) state.emplacement
-                       , HE.onValueInput $ Just <<< ( UpdateFluid _base _edf )
-                       ]
+            , HH.input $ inputFluid state _base _edf
             , HH.p_ [ HH.text $ "Newer : " <> prettyDate state.newerDate ]
             , HH.input [ HP.type_ HP.InputDate
                        , HP.value $ dateValuesToValue state.newerDate
                        , HE.onValueInput $ Just <<< UpdateNewer
                        ]
             , HH.label_ [ HH.text "Eau : "]
-            , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ show $ safeAt state.newer (_.eau) state.emplacement
-                       , HE.onValueInput $ Just <<< ( UpdateFluid _newer _eau )
-                       ]
+            , HH.input $ inputFluid state _newer _eau
             , HH.label_ [ HH.text "Edf : "]
-            , HH.input [ HP.type_ HP.InputNumber
-                       , HP.value $ show $ safeAt state.newer (_.edf) state.emplacement
-                       , HE.onValueInput $ Just <<< ( UpdateFluid _newer _edf )
-                       ]
+            , HH.input $ inputFluid state _newer _edf
             , HH.h3_ [ HH.text $ "Conso Eau: " <> show consoEau ]
             , HH.h3_ [ HH.text $ "Conso Edf: " <> show consoEdf ]
             , HH.h3_ [ HH.text $ "Coût Emplacement : " <> show consoEmpl ]
