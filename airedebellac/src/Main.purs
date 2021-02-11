@@ -290,16 +290,19 @@ inputFluid state period fluid =
       ]
     else []
 
-
+_EUROS_PER_DAY_ = 2.0 :: Number
+_EUROS_PER_m3_  = 3.976 :: Number
+_EUROS_PER_kWh_ = 0.067 :: Number
+    
 render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
   let consoEau = ( safeAt state _newer _eau state.emplacement
-                 - safeAt state _base _eau state.emplacement) * 3.976
+                 - safeAt state _base _eau state.emplacement) * _EUROS_PER_m3_
       consoEdf = ( safeAt state _newer _edf state.emplacement
-                 - safeAt state _base _edf state.emplacement) * 0.067
+                 - safeAt state _base _edf state.emplacement) * _EUROS_PER_kWh_
       Days nbDays = fromMaybe (Days 0.0) $ diff <$> valuesToDate state.newerDate 
                                                 <*> valuesToDate state.baseDate
-      consoEmpl = nbDays * 2.0
+      consoEmpl = nbDays * _EUROS_PER_DAY_
   HH.div_ $ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
             ]
             <>

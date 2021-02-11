@@ -11756,6 +11756,9 @@ var PS = {};
           throw new Error("Failed pattern match at Main (line 156, column 1 - line 158, column 54): " + [ v.constructor.name ]);
       };
   };
+  var _EUROS_PER_m3_ = 3.976;
+  var _EUROS_PER_kWh_ = 6.7e-2;
+  var _EUROS_PER_DAY_ = 2.0;
   var render = function (state) {
       var addNote = (function () {
           var $114 = state.name === "";
@@ -11772,7 +11775,7 @@ var PS = {};
           return _base(dictStrong);
       })(function (dictStrong) {
           return _edf(dictStrong);
-      })(state.emplacement)) * 6.7e-2;
+      })(state.emplacement)) * _EUROS_PER_kWh_;
       var consoEau = (safeAt(state)(function (dictStrong) {
           return _newer(dictStrong);
       })(function (dictStrong) {
@@ -11781,9 +11784,9 @@ var PS = {};
           return _base(dictStrong);
       })(function (dictStrong) {
           return _eau(dictStrong);
-      })(state.emplacement)) * 3.976;
+      })(state.emplacement)) * _EUROS_PER_m3_;
       var v = Data_Maybe.fromMaybe(0.0)(Control_Apply.apply(Data_Maybe.applyMaybe)(Data_Functor.map(Data_Maybe.functorMaybe)(Data_Date.diff(Data_Time_Duration.durationDays))(valuesToDate(state.newerDate)))(valuesToDate(state.baseDate)));
-      var consoEmpl = v * 2.0;
+      var consoEmpl = v * _EUROS_PER_DAY_;
       return Halogen_HTML_Elements.div_(Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Started " + (Data_Show.show(Data_Show.showInt)(state.elapsed) + " seconds ago.")) ]) ])(Data_Semigroup.append(Data_Semigroup.semigroupArray)(Data_Array.concat(Data_Functor.map(Data_Functor.functorArray)(empl)(Data_Array.range(1)(8))))([ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Emplacement " + Data_Show.show(Data_Show.showInt)(state.emplacement)) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Base : " + prettyDate(state.baseDate)) ]), Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputDate.value), Halogen_HTML_Properties.value(dateValuesToValue(state.baseDate)), Halogen_HTML_Events.onValueInput(function ($133) {
           return Data_Maybe.Just.create(UpdateBase.create($133));
       }) ]), Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Eau : ") ]), Halogen_HTML_Elements.input(inputFluid(state)(function (dictStrong) {
@@ -11856,6 +11859,9 @@ var PS = {};
   exports["_eau"] = _eau;
   exports["_edf"] = _edf;
   exports["inputFluid"] = inputFluid;
+  exports["_EUROS_PER_DAY_"] = _EUROS_PER_DAY_;
+  exports["_EUROS_PER_m3_"] = _EUROS_PER_m3_;
+  exports["_EUROS_PER_kWh_"] = _EUROS_PER_kWh_;
   exports["render"] = render;
   exports["main"] = main;
 })(PS);
