@@ -41,11 +41,18 @@ type Note =
   { text ∷ String
   }
   
-type DateValues = { year :: Int, month :: Int, day :: Int }
+type DateValues = 
+  { year :: Int
+  , month :: Int
+  , day :: Int }
 
-type Fluid = { eau :: Number, edf :: Number }
+type Fluid = 
+  { eau :: Number
+  , edf :: Number }
 
-raz = { eau: 0.0, edf: 0.0 } :: Fluid
+raz = 
+  { eau: 0.0
+  , edf: 0.0 } :: Fluid
 
 type State = 
   { name ∷ String 
