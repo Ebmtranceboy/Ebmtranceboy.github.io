@@ -276,13 +276,17 @@ _eau = lens _.eau $ _ { eau = _ }
 _edf :: FluidL
 _edf = lens _.edf $ _ { edf = _ }
 
-inputFluid :: forall r. State -> PeriodL -> FluidL -> Array (HP.IProp ( onBlur :: FocusEvent 
-                           , onFocus :: FocusEvent
-                           , onInput :: Event     
-                           , type :: InputType    
-                           , value :: String      
-                           | r                  
-                           )  Action)
+inputFluid :: forall r
+  .  State 
+  -> PeriodL 
+  -> FluidL 
+  -> Array (HP.IProp ( onBlur :: FocusEvent 
+                     , onFocus :: FocusEvent
+                     , onInput :: Event     
+                     , type :: InputType    
+                     , value :: String      
+                     | r                  
+                     )  Action)
 inputFluid state period fluid = 
   [ HP.type_ HP.InputNumber
   , HE.onValueInput $ Just <<< ( UpdateFluid period fluid )

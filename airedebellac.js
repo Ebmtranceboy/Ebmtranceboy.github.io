@@ -11531,7 +11531,7 @@ var PS = {};
               name: v.name
           };
       };
-      throw new Error("Failed pattern match at Main (line 137, column 10 - line 145, column 10): " + [ storedModel.constructor.name ]);
+      throw new Error("Failed pattern match at Main (line 144, column 10 - line 152, column 10): " + [ storedModel.constructor.name ]);
   };
   var empl = function (n) {
       return [ Halogen_HTML_Elements.input([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.isPropInputType)(DOM_HTML_Indexed_InputType.InputRadio.value), Halogen_HTML_Properties.name("emplacements"), Halogen_HTML_Properties.id_("empl" + Data_Show.show(Data_Show.showInt)(n)), Halogen_HTML_Properties.value(Data_Show.show(Data_Show.showInt)(n)), Halogen_HTML_Events.onValueInput(function ($124) {
@@ -11753,7 +11753,7 @@ var PS = {};
                   return $111;
               });
           };
-          throw new Error("Failed pattern match at Main (line 156, column 1 - line 158, column 54): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Main (line 163, column 1 - line 165, column 54): " + [ v.constructor.name ]);
       };
   };
   var _EUROS_PER_m3_ = 3.976;
