@@ -2,17 +2,21 @@ module Main where
 
 import Prelude
 
+import CSS (fontSize, em, body, blue, (?), color, label, black, key, Prefixed (..), sup, display, grid, fontFamily, sansSerif)
+import CSS (Key(..)) as CSS
 import Control.Monad.Rec.Class (forever)
 import Data.Array as Array
 import Data.Date (Date, Month, canonicalDate, diff, weekday)
 import Data.Either (either)
 import Data.Enum (toEnum)
-import Data.Int (round)
+import Data.Int (round, toNumber, floor)
 import Data.Lens (lens, Lens, over, set, view)
 import Data.Lens.Index (ix)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.NonEmpty (singleton) as NonEmpty
 import Data.String (Pattern (..), split)
 import Data.Time.Duration (Days(..))
+import Data.Traversable (traverse_)
 import Data.Tuple.Nested ((/\), type (/\))
 import DOM.HTML.Indexed.InputType (InputType)
 import Effect (Effect)
@@ -25,6 +29,7 @@ import Global (readFloat)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
+import Halogen.HTML.CSS as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
@@ -32,6 +37,7 @@ import Halogen.Query.EventSource (Finalizer(..), affEventSource, emit) as EventS
 import Halogen.VDom.Driver (runUI)
 import Hooks.UseLocalStorage (Key(..), useLocalStorage)
 import Simple.JSON (readJSON, writeJSON)
+import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.Internal.Types (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, key) as Event
@@ -78,19 +84,23 @@ initialState n =
   }
 
 valuesToDate :: Maybe DateValues -> Maybe Date
-valuesToDate mvs = mvs >>= \{year, month, day} ->  
+valuesToDate mvs = mvs >>= \{ year, month, day } ->  
    canonicalDate <$> toEnum year <*> toEnum month <*> toEnum day
 
+showTwoDigitsInt :: Int -> String
+showTwoDigitsInt n = 
+  (if n < 10 
+     then "0"
+     else "") <> show n
+   
 dateValuesToValue :: Maybe DateValues -> String
 dateValuesToValue mvs = 
   fromMaybe "" $ ( \{ year, month, day } -> 
                       show year
                       <> "-"
-                      <> (if month < 10 then "0" else "")
-                      <> show month
+                      <> showTwoDigitsInt month
                       <> "-"
-                      <> (if day < 10 then "0" else "")
-                      <> show day
+                      <> showTwoDigitsInt day
                   ) <$> mvs
    
 prettyDate :: Maybe DateValues -> String
@@ -196,12 +206,22 @@ addNote state =
                , notes = Array.snoc state.notes {text: state.name} 
                }
 
+twoDigits :: Number -> Number
+twoDigits x = 
+  (toNumber $ round $ x * 100.0) / 100.0
+
+showTwoDigits :: Number -> String
+showTwoDigits x = 
+  let e = floor x
+      d = round $ (x - toNumber e) * 100.0
+  in show e <> "," <> showTwoDigitsInt d
+  
 _EUROS_PER_DAY_ = 2.0 :: Number
 _EUROS_PER_m3_  = 3.976 :: Number
 _EUROS_PER_kWh_ = 0.067 :: Number
 
-aireDeBellac :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
-aireDeBellac = Hooks.component \_ _ -> Hooks.do
+contentComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+contentComponent = Hooks.component \_ _ -> Hooks.do
   let defaultValue = initialState 1
   stateAndModifier <- useLocalStorage
     { defaultValue
@@ -229,59 +249,134 @@ aireDeBellac = Hooks.component \_ _ -> Hooks.do
 
   let
     state /\ modifyState = stateAndModifier
-    consoEau = ( safeAt state _newer _eau state.emplacement
-                 - safeAt state _base _eau state.emplacement) * _EUROS_PER_m3_
-    consoEdf = ( safeAt state _newer _edf state.emplacement
+    consoEau = twoDigits $ ( safeAt state _newer _eau state.emplacement
+                            - safeAt state _base _eau state.emplacement) * _EUROS_PER_m3_
+    consoEdf = twoDigits $ ( safeAt state _newer _edf state.emplacement
                  - safeAt state _base _edf state.emplacement) * _EUROS_PER_kWh_
     Days nbDays = fromMaybe (Days 0.0) $ diff <$> valuesToDate state.newerDate 
                                                 <*> valuesToDate state.baseDate
-    consoEmpl = nbDays * _EUROS_PER_DAY_
+    consoEmpl = twoDigits $ nbDays * _EUROS_PER_DAY_
 
   Hooks.pure do
-    HH.div_ $ [ HH.p_ [ HH.text $ "Started " <> show elapsed 
-                                              <> " seconds ago." ]
+    HH.div_ $ [ HH.p
+                [  HC.style do
+                    fontSize $ em 2.0
+                ]
+                [ HH.text $ "Started " <> show elapsed 
+                                       <> " seconds ago." 
+                ]
               ]
               <>
                 (Array.concat $ empl stateAndModifier <$> 1 Array... 8)
               <>
               [ HH.p_ [ HH.text $ "Emplacement " <> show state.emplacement ]
-              , HH.p_ [ HH.text $ "Base : " <> prettyDate state.baseDate ]
-              , HH.input [ HP.type_ HP.InputDate
-                         , HP.value $ dateValuesToValue state.baseDate
-                         , HE.onValueInput \iAmADate -> 
-                              Just $ modifyState _{ baseDate = prove iAmADate }
-                         ]
-              , HH.label_ [ HH.text "Eau : "]
-              , HH.input $ inputFluid stateAndModifier _base _eau      
-              , HH.label_ [ HH.text "Edf : "]
-              , HH.input $ inputFluid stateAndModifier _base _edf
-              , HH.p_ [ HH.text $ "Newer : " <> prettyDate state.newerDate ]
-              , HH.input [ HP.type_ HP.InputDate
-                         , HP.value $ dateValuesToValue state.newerDate
-                         , HE.onValueInput \iAmADate -> 
-                            Just $ modifyState _{ newerDate = prove iAmADate }
-                         ]
-              , HH.label_ [ HH.text "Eau : "]
-              , HH.input $ inputFluid stateAndModifier _newer _eau
-              , HH.label_ [ HH.text "Edf : "]
-              , HH.input $ inputFluid stateAndModifier _newer _edf
-              , HH.h3_ [ HH.text $ "Conso Eau: " <> show consoEau ]
-              , HH.h3_ [ HH.text $ "Conso Edf: " <> show consoEdf ]
-              , HH.h3_ [ HH.text $ "Coût Emplacement : " <> show consoEmpl ]
-              , HH.h2_ [ HH.text $ "Total: " <> show ( consoEau 
+              , HH.p_ 
+                [ HH.i [ HP.class_ $ HH.ClassName "far fa-calendar-check"] []
+                , HH.text $ " Check-in : " <> prettyDate state.baseDate 
+                ]
+              , HH.div 
+                [ HC.style do
+                    display grid
+                    key (CSS.Key $ Plain "grid-template-columns") "1fr 1fr 1fr;"
+                ]
+                [ HH.div_
+                  [ HH.input  [ HP.type_ HP.InputDate
+                              , HP.value $ dateValuesToValue state.baseDate
+                              , HE.onValueInput \iAmADate -> 
+                                    Just $ modifyState _{ baseDate = prove iAmADate }
+                              ]
+                  ]
+                , HH.div_ 
+                  [ HH.label_ 
+                    [ HH.i [ HP.class_ $ HH.ClassName "fas fa-shower"] []
+                    , HH.text " Eau : "
+                    ]
+                  , HH.input $ inputFluid stateAndModifier _base _eau
+                  , HH.label_ [ HH.text "m" ]
+                  , HH.sup_ [ HH.text "3" ]
+                  ]
+                , HH.div_
+                  [ HH.label_ 
+                    [ HH.i [ HP.class_ $ HH.ClassName "fas fa-charging-station"] []
+                    , HH.text " Edf : "
+                    ]
+                  , HH.input $ inputFluid stateAndModifier _base _edf
+                  , HH.label_ [ HH.text "kWh" ]
+                  ]
+                ]
+              , HH.p_ 
+                [ HH.i [ HP.class_ $ HH.ClassName "far fa-calendar"] []
+                , HH.text $ " Check-out : " <> prettyDate state.newerDate 
+                ]
+              , HH.div 
+                [ HC.style do
+                    display grid
+                    key (CSS.Key $ Plain "grid-template-columns") "1fr 1fr 1fr;"
+                ]
+                [ HH.div_
+                  [ HH.input  [ HP.type_ HP.InputDate
+                              , HP.value $ dateValuesToValue state.newerDate
+                              , HE.onValueInput \iAmADate -> 
+                                  Just $ modifyState _{ newerDate = prove iAmADate }
+                              ]
+                  ]
+                , HH.div_
+                  [ HH.label_ 
+                    [ HH.i [ HP.class_ $ HH.ClassName "fas fa-shower"] []
+                    , HH.text " Eau : "
+                    ]
+                  , HH.input $ inputFluid stateAndModifier _newer _eau
+                  , HH.label_ [ HH.text "m" ]
+                  , HH.sup_ [ HH.text "3" ]
+                  ]
+                , HH.div_
+                  [ HH.label_ 
+                    [ HH.i [ HP.class_ $ HH.ClassName "fas fa-charging-station"] []
+                    , HH.text " Edf : "
+                    ]
+                  , HH.input $ inputFluid stateAndModifier _newer _edf
+                  , HH.label_ [ HH.text "kWh" ]
+                  ]
+                ]
+              , HH.div 
+                [ HC.style do
+                    display grid
+                    key (CSS.Key $ Plain "grid-template-columns") "1fr 1fr 1fr;"
+                ]
+                [ HH.h3_ 
+                  [ HH.i  [ HP.class_ $ HH.ClassName "fas fa-bed"] []
+                          , HH.text $ " Coût Emplacement : " 
+                              <> showTwoDigits consoEmpl  <> " €" 
+                  ]
+                , HH.h3_ 
+                  [ HH.i  [ HP.class_ $ HH.ClassName "fas fa-shower"] []
+                          , HH.text $ " Coût Eau : " 
+                              <> showTwoDigits consoEau <> " €" 
+                  ]
+                , HH.h3_ 
+                  [ HH.i  [ HP.class_ $ HH.ClassName "fas fa-charging-station"] []
+                          , HH.text $ " Coût Edf : " 
+                              <> showTwoDigits consoEdf <> " €" 
+                  ]
+                ]
+              , HH.h2_ 
+                [ HH.i 
+                  [ HP.class_ $ HH.ClassName "fas fa-cash-register"] []
+                , HH.text $ " Total : " <> showTwoDigits ( consoEau 
                                                      + consoEdf 
-                                                     + consoEmpl ) ]
+                                                     + consoEmpl )  <> " €"
+                ]
               , HH.p_ [ HH.text "Anything to add?" ]
               
               , composeNote state.name
-              , HH.input [ HP.type_ HP.InputText
-                        , HP.value state.name
-                        , HP.placeholder "type note"
-                        , HP.autofocus true 
-                        , HE.onValueInput \newName ->
-                            Just $ modifyState _{ name = newName }
-                        , onEnter \_ -> Just $ modifyState addNote
-                        ]
+              , HH.input  [ HP.type_ HP.InputText
+                          , HP.value state.name
+                          , HP.placeholder "type note"
+                          , HP.autofocus true 
+                          , HE.onValueInput \newName ->
+                              Just $ modifyState _{ name = newName }
+                          , onEnter \_ -> Just $ modifyState addNote
+                          ]
               , HH.ul_ $
                 (\note -> HH.li_ [ HH.label_ [HH.text note.text] ]) 
                   <$> state.notes
@@ -289,15 +384,47 @@ aireDeBellac = Hooks.component \_ _ -> Hooks.do
               , HH.button 
                 [ HE.onClick \_ -> Just $ modifyState (const $ initialState 1)
                 ] 
-                [HH.text $ "Clear All"]
+                [ HH.text $ "Clear All" ]
               ]
     where
       composeNote note = if note == ""
                   then HH.p_ []
                   else HH.p_ [ HH.text $ "Press Enter to add: " <> note ]
               
+
+styleComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+styleComponent = Hooks.component \_ _ -> Hooks.do
+  Hooks.pure do
+    HC.stylesheet $ body ? do
+                        color blue
+                        fontFamily [ "Raleway" ] $ NonEmpty.singleton sansSerif
+                        label ? do 
+                          color black
+                        sup ? color black
+scriptComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+scriptComponent = Hooks.component \_ _ -> Hooks.do
+  Hooks.pure do
+    HH.script
+      [ HP.src "https://kit.fontawesome.com/4958828633.js"
+      , HP.prop (HH.PropName "crossorigin") "anonymous"
+      ]
+      [
+      ]
+
+linkComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+linkComponent = Hooks.component \_ _ -> Hooks.do
+  Hooks.pure do
+    HH.link 
+      [ HP.rel "stylesheet"
+      , HP.href "https://fonts.googleapis.com/css?family=Raleway"
+      ]
+      
 main :: Effect Unit
 main = HA.runHalogenAff do
-  body <- HA.awaitBody
-  runUI aireDeBellac unit body
-
+  HA.awaitLoad
+  let drivenBy tag component = 
+        traverse_ (runUI component unit) =<< HA.selectElement (QuerySelector tag)
+  "head" `drivenBy` linkComponent
+  "head" `drivenBy` scriptComponent
+  "head" `drivenBy` styleComponent
+  "body" `drivenBy` contentComponent

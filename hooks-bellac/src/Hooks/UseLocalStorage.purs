@@ -8,8 +8,6 @@ module Hooks.UseLocalStorage
 
 import Prelude
 
-import Data.Either (Either(..))
-import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..))

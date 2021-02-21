@@ -6,6 +6,7 @@ You can edit this file as you like.
 , dependencies =
   [ "console"
   , "effect"
+  , "halogen-css"
   , "halogen-hooks"
   , "profunctor-lenses"
   , "psci-support"
