@@ -2,7 +2,7 @@ module Main where
 
 import Prelude
 
-import CSS (fontSize, em, body, blue, (?), color, label, black, key, Prefixed (..), sup, display, grid, fontFamily, sansSerif)
+import CSS (Prefixed(..), backgroundImage, backgroundRepeat, backgroundSize, black, body, color, cover, display, em, fontFamily, fontSize, fromString, grid, height, key, label, noRepeat, sansSerif, sup, vh, white, (?)) 
 import CSS (Key(..)) as CSS
 import Control.Monad.Rec.Class (forever)
 import Data.Array as Array
@@ -396,7 +396,13 @@ styleComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
 styleComponent = Hooks.component \_ _ -> Hooks.do
   Hooks.pure do
     HC.stylesheet $ body ? do
-                        color blue
+                        backgroundImage $ fromString
+                          "linear-gradient(rgba(140,140,140,0.8),rgba(0,0,0,0.8)),url(aagdv_bellac.png)"
+                        height $ vh 100.0
+                                   
+                        color white
+                        backgroundRepeat noRepeat
+                        backgroundSize cover
                         fontFamily [ "Raleway" ] $ NonEmpty.singleton sansSerif
                         label ? do 
                           color black
