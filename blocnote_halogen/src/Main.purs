@@ -1,12 +1,14 @@
 module Main where
 
 import Prelude
-
+import CSS (Float(..), a, backgroundColor, black, color, float, fontSize, fromHexString, fromString, hover, nav, noneTextDecoration, padding, px, textDecoration, white, with, (?))       
+import CSS.TextAlign (textAlign, center)
 import Control.Monad.Rec.Class (forever)
 import Data.Array as Array
 import Data.Const (Const)
 import Data.Either (hush)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Traversable (traverse_)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff
@@ -14,6 +16,7 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Exception (error)
 import Halogen as H
 import Halogen.Aff as HA
+import Halogen.HTML.CSS as HC
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource (EventSource)
@@ -21,6 +24,7 @@ import Halogen.Query.EventSource (Finalizer(..), affEventSource, emit) as EventS
 import Halogen.VDom.Driver (runUI)
 import Halogen.HTML.Properties as HP
 import Simple.JSON (E, readJSON, writeJSON)
+import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML (window) as DOM
 import Web.HTML.Window (localStorage) as DOM
 import Web.Storage.Storage (getItem, setItem) as Storage
@@ -43,8 +47,8 @@ data Action
   | DeleteAll Int
   | Tick
 
-page ∷ forall m. MonadAff m => H.Component HH.HTML (Const Void) Int Void m 
-page = 
+pageRender ∷ forall m. MonadAff m => H.Component HH.HTML (Const Void) Int Void m 
+pageRender = 
   H.mkComponent 
     { initialState
     , eval: H.mkEval $ H.defaultEval
@@ -52,6 +56,17 @@ page =
       , handleAction = handleAction 
       }
     , render
+    }
+
+pageStyle ∷ forall m. MonadAff m => H.Component HH.HTML (Const Void) Int Void m 
+pageStyle = 
+  H.mkComponent 
+    { initialState
+    , eval: H.mkEval $ H.defaultEval
+      { initialize = Just Initialize
+      , handleAction = handleAction 
+      }
+    , render: styleComponent
     }
 
 initialState ∷ Int -> State
@@ -127,8 +142,8 @@ onEnter a = HE.onKeyDown \ev →
     then Just a
     else Nothing
 
-render :: forall m. State -> H.ComponentHTML Action () m
-render state =
+composeNote :: forall m. State -> HH.HTML m Action
+composeNote state =
     HH.div_ [ HH.p_ [ HH.text $ "Started " <> show state.elapsed <> " seconds ago." ]
             , HH.p_ [ HH.text "What is your name?" ]
             , HH.input [ HP.type_ HP.InputText
@@ -139,13 +154,6 @@ render state =
                        , onEnter AddTodo
                        ]
             , hello
-            , HH.ul [] $
-              (\note -> HH.li [] [HH.label [] [HH.text note.text]]) 
-                <$> state.notes
-
-            , HH.button 
-              [HE.onClick $ const $ Just $ DeleteAll state.elapsed] 
-              [HH.text $ "Clear All"]
             ]
 
     where
@@ -153,7 +161,50 @@ render state =
               then HH.p_ []
               else HH.p_ [ HH.text $ "Hello " <> state.name ]
 
+displayNotes :: forall m. State -> HH.HTML m Action
+displayNotes state =
+    HH.div_ [ HH.nav_ $
+              Array.mapWithIndex (\i note -> 
+                HH.a 
+                  [HP.href $ "#note" <> show i
+                  ] 
+                  [ HH.label_ [HH.text note.text] ]
+                ) 
+                 state.notes
+            ]
+ 
+render :: forall m. State -> H.ComponentHTML Action () m
+render state =
+    HH.div_ [ composeNote state
+            , displayNotes state
+            , HH.button 
+              [HE.onClick $ const $ Just $ DeleteAll state.elapsed] 
+              [HH.text $ "Clear All"]
+            ]
+styleComponent :: forall m t. State -> HH.HTML m t
+styleComponent _ = 
+  HC.stylesheet $ do
+    nav ? do
+      a ? do
+        backgroundColor black
+        float FloatLeft 
+        color $ fromMaybe black $ fromHexString "#f2f2f2"
+        textAlign center
+        padding (px 14.0) (px 16.0) (px 14.0) (px 16.0) 
+        textDecoration noneTextDecoration
+        fontSize $ px 17.0
+        
+      a `with` hover ? do
+        backgroundColor $ fromMaybe black $ fromHexString "#ddd"
+        color black
+      a `with` fromString ":active" ? do
+        backgroundColor $ fromMaybe black $ fromHexString "#4CAF50"
+        color white
+      
 main :: Effect Unit
-main = HA.runHalogenAff $
-       HA.awaitBody >>= runUI page 0
-
+main = HA.runHalogenAff do
+  HA.awaitLoad
+  let drivenBy tag component = 
+        traverse_ (runUI component 0) =<< HA.selectElement (QuerySelector tag)
+  "head" `drivenBy` pageStyle
+  "body" `drivenBy` pageRender
