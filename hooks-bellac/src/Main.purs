@@ -2,8 +2,8 @@ module Main where
 
 import Prelude
 
-import CSS (Prefixed(..), backgroundImage, backgroundRepeat, backgroundSize, black, body, color, cover, display, em, fontFamily, fontSize, fromString, grid, height, key, label, noRepeat, sansSerif, sup, vh, white, (?)) 
-import CSS (Key(..)) as CSS
+import CSS (fontSize, em, body, (?), color, label, white, key, Prefixed (..), sup, display, grid, fontFamily, sansSerif, backgroundImage, backgroundRepeat, backgroundSize, noRepeat, vh, cover, height, black)
+import CSS (Key(..), fromString) as CSS
 import Control.Monad.Rec.Class (forever)
 import Data.Array as Array
 import Data.Date (Date, Month, canonicalDate, diff, weekday)
@@ -14,6 +14,7 @@ import Data.Lens (lens, Lens, over, set, view)
 import Data.Lens.Index (ix)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.NonEmpty (singleton) as NonEmpty
+import Data.Number (fromString)
 import Data.String (Pattern (..), split)
 import Data.Time.Duration (Days(..))
 import Data.Traversable (traverse_)
@@ -22,10 +23,8 @@ import DOM.HTML.Indexed.InputType (InputType)
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff
-import Effect.Aff.Class (class MonadAff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect)
-import Effect.Exception (error)
-import Global (readFloat)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
@@ -33,7 +32,7 @@ import Halogen.HTML.CSS as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
-import Halogen.Query.EventSource (Finalizer(..), affEventSource, emit) as EventSource
+import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Hooks.UseLocalStorage (Key(..), useLocalStorage)
 import Simple.JSON (readJSON, writeJSON)
@@ -118,7 +117,7 @@ prettyDate mvs =
 prove :: String -> Maybe DateValues
 prove str = 
   let ns = split (Pattern "-") str
-      int = round <<< readFloat
+      int s = maybe 0 round $ fromString s
   in (\ a b c -> { year: int a, month: int b, day: int c }) 
     <$> (ns Array.!! 0) <*> (ns Array.!! 1) <*> (ns Array.!! 2)
 
@@ -131,11 +130,11 @@ empl :: forall a m
 empl (state /\ modifyState) n = 
   [ HH.input  [ HP.type_ HP.InputRadio
               , HP.name "emplacements"
-              , HP.id_ $ "empl" <> show n
+              , HP.id $ "empl" <> show n
               , HP.value $ show n
               , HP.checked $ state.emplacement == n
               , HE.onValueInput \newEmpl -> 
-                Just $ modifyState _{ emplacement = round $ readFloat newEmpl }
+                modifyState _{ emplacement = maybe 0 round $ fromString newEmpl }
               ]
   , HH.label [ HP.for $ "empl" <> show n ] [ HH.text $ show n ]
   ]
@@ -174,12 +173,12 @@ inputFluid :: forall r m
                      ) (HM m))
 inputFluid (state /\ modifyState) period fluid = 
   [ HP.type_ HP.InputNumber
-  , HE.onValueInput \strval -> Just do
+  , HE.onValueInput \strval -> do
       let e = state.emplacement
-      modifyState $ over period $ over (ix e) $ set fluid $ readFloat strval
-  , HE.onFocus \_ -> Just $ 
+      modifyState $ over period $ over (ix e) $ set fluid $ (\s -> fromMaybe 0.0 $ fromString s) strval
+  , HE.onFocus \_ -> 
       modifyState $ over period $ over (ix 0) $ set fluid 1.0
-  , HE.onBlur \_ -> Just $ 
+  , HE.onBlur \_ ->  
       modifyState $ over period $ over (ix 0) $ set fluid (-1.0)
   ]
   <>
@@ -190,13 +189,14 @@ inputFluid (state /\ modifyState) period fluid =
       ]
     else []
 
-onEnter ∷ forall i r
-  . (Unit -> Maybe i) 
+unlessEnter ∷ forall i r
+  . (Unit -> i) 
+  → (Unit -> i) 
   → HH.IProp (onKeyDown ∷ Event.KeyboardEvent | r) i
-onEnter cb = HE.onKeyDown \ev →
+unlessEnter defaultCb cb = HE.onKeyDown \ev →
   if Event.key ev == "Enter"
     then cb unit
-    else Nothing
+    else defaultCb unit
 
 addNote :: State -> State
 addNote state = 
@@ -220,7 +220,7 @@ _EUROS_PER_DAY_ = 2.0 :: Number
 _EUROS_PER_m3_  = 3.976 :: Number
 _EUROS_PER_kWh_ = 0.067 :: Number
 
-contentComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+contentComponent :: forall q i o m. MonadAff m => H.Component q i o m
 contentComponent = Hooks.component \_ _ -> Hooks.do
   let defaultValue = initialState 1
   stateAndModifier <- useLocalStorage
@@ -232,17 +232,13 @@ contentComponent = Hooks.component \_ _ -> Hooks.do
   elapsed /\ elapsedId <- Hooks.useState 0
   
   Hooks.useLifecycleEffect do
-    
-    subId <- Hooks.subscribe do
-      EventSource.affEventSource \emitter -> do
-        fiber <- Aff.forkAff $ forever do
-          Aff.delay $ Milliseconds 1000.0
-          EventSource.emit emitter do
-              t <- Hooks.get elapsedId
-              Hooks.put elapsedId (t + 1)
-          
-        pure $ EventSource.Finalizer do
-          void $ Aff.killFiber (error "Event source finalized") fiber
+    { emitter, listener } <- H.liftEffect HS.create
+    subId <- Hooks.subscribe emitter
+    H.liftEffect $ HS.notify listener do
+      void $ Hooks.fork $ forever do
+        void $ liftAff $ Aff.delay $ Milliseconds 1000.0
+        t <- Hooks.get elapsedId
+        Hooks.put elapsedId (t + 1)
     
     pure $ Just do
       Hooks.unsubscribe subId
@@ -283,7 +279,7 @@ contentComponent = Hooks.component \_ _ -> Hooks.do
                   [ HH.input  [ HP.type_ HP.InputDate
                               , HP.value $ dateValuesToValue state.baseDate
                               , HE.onValueInput \iAmADate -> 
-                                    Just $ modifyState _{ baseDate = prove iAmADate }
+                                    modifyState _{ baseDate = prove iAmADate }
                               ]
                   ]
                 , HH.div_ 
@@ -317,7 +313,7 @@ contentComponent = Hooks.component \_ _ -> Hooks.do
                   [ HH.input  [ HP.type_ HP.InputDate
                               , HP.value $ dateValuesToValue state.newerDate
                               , HE.onValueInput \iAmADate -> 
-                                  Just $ modifyState _{ newerDate = prove iAmADate }
+                                  modifyState _{ newerDate = prove iAmADate }
                               ]
                   ]
                 , HH.div_
@@ -374,15 +370,15 @@ contentComponent = Hooks.component \_ _ -> Hooks.do
                           , HP.placeholder "type note"
                           , HP.autofocus true 
                           , HE.onValueInput \newName ->
-                              Just $ modifyState _{ name = newName }
-                          , onEnter \_ -> Just $ modifyState addNote
+                              modifyState _{ name = newName }
+                          , unlessEnter (\_ -> modifyState identity) \_ -> modifyState addNote
                           ]
               , HH.ul_ $
                 (\note -> HH.li_ [ HH.label_ [HH.text note.text] ]) 
                   <$> state.notes
 
               , HH.button 
-                [ HE.onClick \_ -> Just $ modifyState (const $ initialState 1)
+                [ HE.onClick \_ -> modifyState (const $ initialState 1)
                 ] 
                 [ HH.text $ "Clear All" ]
               ]
@@ -392,14 +388,12 @@ contentComponent = Hooks.component \_ _ -> Hooks.do
                   else HH.p_ [ HH.text $ "Press Enter to add: " <> note ]
               
 
-styleComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+styleComponent :: forall q i o m. MonadAff m => H.Component q i o m
 styleComponent = Hooks.component \_ _ -> Hooks.do
   Hooks.pure do
     HC.stylesheet $ body ? do
-                        backgroundImage $ fromString
-                          "linear-gradient(rgba(140,140,140,0.8),rgba(0,0,0,0.8)),url(aagdv_bellac.png)"
+                        backgroundImage $ CSS.fromString "linear-gradient(rgba(140,140,140,0.8), rgba(0,0,0,0.8)),url(aagdv_bellac.png)"
                         height $ vh 100.0
-                                   
                         color white
                         backgroundRepeat noRepeat
                         backgroundSize cover
@@ -407,7 +401,7 @@ styleComponent = Hooks.component \_ _ -> Hooks.do
                         label ? do 
                           color black
                         sup ? color black
-scriptComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+scriptComponent :: forall q i o m. MonadAff m => H.Component q i o m
 scriptComponent = Hooks.component \_ _ -> Hooks.do
   Hooks.pure do
     HH.script
@@ -417,7 +411,7 @@ scriptComponent = Hooks.component \_ _ -> Hooks.do
       [
       ]
 
-linkComponent :: forall q i o m. MonadAff m => H.Component HH.HTML q i o m
+linkComponent :: forall q i o m. MonadAff m => H.Component q i o m
 linkComponent = Hooks.component \_ _ -> Hooks.do
   Hooks.pure do
     HH.link 
@@ -434,3 +428,5 @@ main = HA.runHalogenAff do
   "head" `drivenBy` scriptComponent
   "head" `drivenBy` styleComponent
   "body" `drivenBy` contentComponent
+  
+  

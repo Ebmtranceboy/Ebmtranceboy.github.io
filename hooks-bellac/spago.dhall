@@ -5,12 +5,12 @@ You can edit this file as you like.
 { name = "my-project"
 , dependencies =
   [ "console"
+  , "css"
   , "effect"
-  , "halogen-css"
   , "halogen-hooks"
   , "profunctor-lenses"
   , "psci-support"
-  , "simple-json"
+  , "variant"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
