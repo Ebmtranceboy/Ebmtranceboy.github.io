@@ -7,8 +7,10 @@ import Effect (Effect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
-import Halogen.Svg.Elements (svg, path)
-import Halogen.Svg.Attributes (Color(RGB), CommandArcChoice(..), CommandPositionReference(..), CommandSweepChoice(..), a, d, fill, h, height, l, m, stroke, strokeWidth, v, viewBox, width, z)
+import Halogen.Svg.Elements (svg, path) as S
+import Halogen.Svg.Attributes (Color(RGB), CommandPositionReference(..), d, fill, h, height, m, stroke, strokeWidth, v, viewBox, width, z)
+import SimpleAbsSVG (ShortPath (..))
+import SimpleAbsSVG as SA
 
 main :: Effect Unit
 main =
@@ -26,16 +28,60 @@ page =
     , render
     }
 
+shape :: Array SA.ShortPath
+shape = 
+  [ M 11.7 17.5
+  , V 11.223
+  , H 8.5
+  , V 9.986
+  , H 11.76
+  , V 7.33
+  , L 11.016 6.596
+  , V 6.0
+  , H 13.182
+  , L 13.997 6.412
+  , V 9.986
+  , L 22.428 9.963
+  , L 23.268 10.788
+  , L 18.096 15.874
+  , A 3.91 true 23.325 19.311
+  , A 6.02 true 22.871 23.503
+  , A 4.037 true 20.961 25.381
+  , A 6.291 true 15.019 24.931
+  , A 3.291 true 14.193 21.975
+  , A 1.343 true 15.951 24.002
+  , A 2.93 false 20.935 22.869
+  , A 4.9 false 20.901 18.527
+  , A 2.93 false 19.794 17.152
+  , A 2.99 false 16.813 17.164
+  , L 15.788 17.668
+  , V 17.164
+  , L 20.4 11.116
+  , H 14.018
+  , V 17.393
+  , A 2.08 false 16.51 18.813
+  , A 3.76 false 17.395 17.92
+  , A 0.342 true 17.512 17.77
+  , A 0.236 true 17.966 17.839
+  , A 0.619 true 18.129 18.263
+  , A 2.92 true 16.976 19.913
+  , A 2.748 true 15.439 20.371
+  , A 3.92 true 11.7 17.5
+  , Z
+  ]
+
 render :: forall m a r. r -> H.ComponentHTML a () m
 render _ = do
-  svg
+  S.svg
           [ viewBox 0.0 0.0 30.0 30.0
           , width 400.0
           , height 400.0
-          ]
-          [ path 
-              [ d
-                [ m Abs 8.0 5.0
+          ] $
+          (SA.simpleAbsRender $ SA.longPath shape)
+          <>
+          [ S.path 
+              [ d 
+               [ m Abs 8.0 5.0
                 , v Abs 27.0
                 , h Abs 24.0
                 , v Abs 5.0
@@ -45,50 +91,11 @@ render _ = do
               , strokeWidth 0.1
               , fill Nothing
               ]
-            , path 
-              [ d
-                [ m Abs 11.7 17.5
-                , v Rel (-6.277)
-                , h Rel (-3.2)
-                , v Rel (-1.237)
-                , h Rel 3.26 
-                , v Rel (-2.656)
-                , l Rel (-0.744) (-0.734)
-                , v Rel (-0.596)
-                , h Rel 2.166
-                , l Rel 0.815 0.412
-                , v Rel 3.574
-                , l Rel 8.431 (-0.023)
-                , l Rel 0.84 0.825
-                , l Rel (-5.172) 5.086
-                , a Rel 3.51 3.51 0.0 Arc0 Sweep1 5.229 3.437
-                , a Rel 7.16 7.16 0.0 Arc0 Sweep1 0.175 1.466 
-                , a Rel 6.02 6.02 0.0 Arc0 Sweep1 (-0.629) 2.726 
-                , a Rel 4.037 4.037 0.0 Arc0 Sweep1 (-1.91) 1.878
-                , a Rel 6.291 6.291 0.0 Arc0 Sweep1 (-5.942) (-0.45)
-                , a Rel 3.291 3.291 0.0 Arc0 Sweep1 (-0.826) (-2.956)
-                , a Rel 1.27 1.27 0.0 Arc0 Sweep1 (1.758) 2.027 
-                , a Rel 2.93 2.93 0.0 Arc0 Sweep0 4.984 (-1.133)
-                , a Rel 4.9 4.9 0.0 Arc0 Sweep0 (-0.034) (-4.342)
-                , a Rel 2.93 2.93 0.0 Arc0 Sweep0 (-1.107) (-1.375)
-                , a Rel 2.99 2.99 0.0 Arc0 Sweep0 (-2.981) 0.012
-                , l Rel (-1.025) 0.504
-                , v Rel (-0.504)
-                , l Rel 4.612 (-6.048)
-                , h Rel (-6.382)
-                , v Rel 6.277
-                , a Rel 2.08 2.08 0.0 Arc0 Sweep0  2.492 1.42
-                , a Rel 3.76 3.76 0.0 Arc0 Sweep0 0.885 (-0.893)
-                , a Rel 0.342 0.342 0.0 Arc0 Sweep1 0.117 (-0.15) 
-                , a Rel 0.236 0.236 0.0 Arc0 Sweep1 0.454 0.069
-                , a Rel 0.619 0.619 0.0 Arc0 Sweep1 0.163 0.424 
-                , a Rel 2.92 2.92 0.0 Arc0 Sweep1  (-1.153) 1.65
-                , a Rel 2.748 2.748 0.0 Arc0 Sweep1 (-1.537) 0.458
-                , a Rel 3.92 3.92 0.0 Arc0 Sweep1 (-3.715) (-2.802)
-                , z 
-                ]
-              , stroke $ Just $ RGB 0 0 0
-              , strokeWidth 0.05
+              
+            , S.path 
+              [ d $ SA.toPathCommand <$> shape
+              , stroke Nothing 
               , fill $ Just $ RGB 240 240 240
               ]
           ]
+          
