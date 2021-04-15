@@ -77,7 +77,7 @@ defaultContext =
 class Render geo where
   render' :: forall p i. Context -> geo -> Array (HTML p i)
 
-instance renderPoint :: Render Point where
+instance renderPoint :: Render (Point Number) where
   render' {strokeColor, strokeWidth, textFill, fontStyle} 
            p@(Point {name, coordinates}) = 
     [ line (abs p - 5.0) (ord p - 5.0)
@@ -91,7 +91,7 @@ instance renderPoint :: Render Point where
          name
     ]
 
-instance renderHalfLine :: Render HalfLine where
+instance renderHalfLine :: Render (HalfLine Number) where
   render' {strokeColor, strokeWidth} 
            (HalfLine {origin, direction}) = 
     let far = origin <+| scale 10.0 direction
@@ -100,7 +100,7 @@ instance renderHalfLine :: Render HalfLine where
             strokeColor strokeWidth
        ]
 
-instance renderLine :: Render Line where
+instance renderLine :: Render (Line Number) where
   render' ctx l = 
     let m = aPointOnLine l
         v = aVectorOfLine l
@@ -110,7 +110,7 @@ instance renderLine :: Render Line where
 arrowBluntness = 0.2 :: Number
 arrowLength = 20.0 :: Number
 
-arrowTip :: Segment -> {at1 :: Point, at2 :: Point}
+arrowTip :: Segment Number-> {at1 :: Point Number, at2 :: Point Number}
 arrowTip s@(Segment {origin, extremity, asOriented}) = 
   let v = vector origin extremity
       ang = atan2 (ord v) (abs v)
@@ -121,10 +121,10 @@ arrowTip s@(Segment {origin, extremity, asOriented}) =
    in { at1: f (pi - arrowBluntness)
       , at2: f (pi + arrowBluntness)}
 
-withCoord :: (Number -> Number -> PathCommand) -> Point -> PathCommand
+withCoord :: (Number -> Number -> PathCommand) -> Point Number-> PathCommand
 withCoord c p = c (abs p) (ord p) 
 
-instance renderSegment :: Render Segment where
+instance renderSegment :: Render (Segment Number) where
   render' {strokeColor, strokeWidth, fontStyle, textFill} 
            s@(Segment {origin,extremity,asOriented}) = 
     let mid = middle "" s
@@ -156,7 +156,7 @@ instance renderSegment :: Render Segment where
            ] ) asOriented
           )
 
-instance renderCircle :: Render Circle where
+instance renderCircle :: Render (Circle Number) where
   render' {strokeColor, strokeWidth, fillColor} 
            (Circle{center: c,radius}) = 
     [ path strokeColor strokeWidth fillColor $
@@ -169,7 +169,7 @@ instance renderCircle :: Render Circle where
       ]
     ]
 
-instance renderArc :: Render Arc where
+instance renderArc :: Render (Arc Number) where
   render' {strokeColor, strokeWidth, fillColor, fontStyle, textFill} 
          (Arc { origin, center, extremity, radius
               , flag, flipped, swapped, asOriented}) = 
@@ -206,7 +206,7 @@ instance renderArc :: Render Arc where
                      textFill fontStyle
                      str]) asOriented)
                      
-instance renderRightAngle :: Render RightAngle where
+instance renderRightAngle :: Render (RightAngle Number) where
   render' {strokeColor, strokeWidth, fillColor} 
          (RightAngle {origin, center, extremity, radius}) = 
     let v = scale (radius/length extremity) extremity

@@ -4,13 +4,21 @@ import Prelude
 import Data.Const (Const)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
+import Data.Int (toNumber, round)
+import Data.Foldable (foldl, fold)
 import Halogen as H
 import Halogen.Aff as HA
+import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
-import Halogen.Svg.Elements (svg, path) as S
-import Halogen.Svg.Attributes (Color(RGB), CommandPositionReference(..), d, fill, h, height, m, stroke, strokeWidth, v, viewBox, width, z)
+import Halogen.Svg.Elements (svg, path, circle) as S
+import Halogen.Svg.Attributes (Color(RGB), CommandPositionReference(..), d, fill, h, height, m, stroke, strokeWidth, v, viewBox, width, z, cx, cy, r)
 import SimpleAbsSVG (ShortPath (..))
 import SimpleAbsSVG as SA
+
+import Data.Array as Array
+import Bivariate (Bi(..), atan, bic, bix, biy)
+import Math (pi)
+import Data.Geometry.Plane (Arc(..), Segment(..), length, point, projection, vector, segment, arc, (<+|), inner, det)
 
 main :: Effect Unit
 main =
@@ -28,7 +36,7 @@ page =
     , render
     }
 
-shape :: Array SA.ShortPath
+shape :: Array (ShortPath Number)
 shape = 
   [ M 11.7 17.5
   , V 11.223
@@ -70,8 +78,101 @@ shape =
   , Z
   ]
 
+geometry :: Array (SA.Geometric Bi)
+geometry = Array.catMaybes $ SA.toGeometric <$> (SA.longPath $ (bic <$> _) <$> shape)
+
+type Bool = Bi
+
+heaviside :: Bi -> Bool
+heaviside b = (atan (bic 100.0 * b) * bic (2.0 / pi) + bic 1.0) / bic 2.0
+
+less :: Bi -> Bi -> Bool
+less a b = heaviside (b - a)
+
+minimum :: Bi -> Bi -> Bi
+minimum a b = a * less a b + b * less b a
+
+and :: Bool -> Bool -> Bool
+and p q = p * q
+
+compl :: Bool -> Bool
+compl p = bic 1.0 - p
+
+or :: Bool -> Bool -> Bool
+or p q = compl (and (compl p) (compl q))
+
+ifte :: Bool -> Bi -> Bi -> Bi
+ifte c t e = t * c + e * (compl c)
+
+mag :: Bi -> Bi
+mag x = x * less (bic 0.0) x - x * less x (bic 0.0)
+
+distanceSegment :: Segment Bi -> Bi -> Bi -> Bi
+distanceSegment s@(Segment { origin, extremity, asOriented }) bx by
+  = do
+    let p = point "" bx by
+        v = vector origin p 
+        h = origin <+| projection (vector origin extremity) v
+        c1 = less (bic 0.0) (inner (vector origin h) (vector origin extremity))
+        c2 = less (bic 0.0) (inner (vector extremity h) (vector extremity origin))
+    ifte 
+      (and c1 c2) 
+      (length (vector p h))
+      (minimum (length $ vector p origin) (length $ vector p extremity))
+       
+distanceArc :: Arc Bi -> Bi -> Bi -> Bi
+distanceArc a@(Arc { origin, center, extremity, radius, flag, flipped , swapped, asOriented }) bx by
+  = do
+    let p = point "" bx by
+        d = det origin extremity
+        l = - det extremity (vector center p) / d
+        m = det origin (vector center p) / d
+        c1 = less (bic 0.0) l
+        c2 = less (bic 0.0) m
+    ifte 
+      (and c1 c2)
+      (mag $ (length $ vector p center) - radius)
+      (minimum (length $ vector p $ center <+| origin) (length $ vector p $ center <+| extremity))
+      
+distanceGeometric :: SA.Geometric Bi -> Bi -> Bi -> Bi
+distanceGeometric (SA.GeoS s) = distanceSegment s
+distanceGeometric (SA.GeoA a) = distanceArc a
+
+showGeo (SA.GeoS (Segment { origin, extremity, asOriented })) = "Segment (" <> show origin <> ", " <> show extremity <> ")"
+showGeo (SA.GeoA (Arc { origin, center, extremity, flipped, swapped, flag, asOriented })) = "Arc (" <> show (center <+| origin) <> ", " <> show center <>", " <> show (center <+| extremity) <> ")"
+
+distanceFunction :: Array (SA.Geometric Bi) -> Bi -> Bi -> Bi
+distanceFunction arr bx by 
+  = case Array.uncons arr of
+        Just { head, tail } -> 
+          foldl (\ m g -> minimum m $ distanceGeometric g bx by) 
+            (distanceGeometric head bx by)
+            tail
+        _ -> bic 0.0
+
+ori = point "" (bic 1.0) (bic 0.0)
+ext = point "" (bic 0.0) (bic 1.0)
+center = point "" (bic 0.0) (bic 0.0)
+vec = vector ori center
+pro = ori <+| projection (vector ori ext) vec
+s = segment ori ext Nothing
+a = arc (vector center ori) center (vector center ext) (bic 1.0) false false false Nothing
+
 render :: forall m a r. r -> H.ComponentHTML a () m
 render _ = do
+  HH.div_
+    [ figure
+    , HH.label_ 
+      [ HH.text $ show $ distanceSegment s (bic 0.0) (bic 0.0)
+      , HH.br_
+      , HH.text $ show $ distanceArc a (bic 0.5) (bic 0.5)
+      , HH.br_
+      , HH.text $ show $ distanceFunction geometry (bic 8.0) (bic 5.0)
+      ]
+    ]
+  
+figure :: forall m a. HH.HTML a m
+figure = do
   S.svg
           [ viewBox 0.0 0.0 30.0 30.0
           , width 400.0
@@ -81,7 +182,7 @@ render _ = do
           <>
           [ S.path 
               [ d 
-               [ m Abs 8.0 5.0
+                [ m Abs 8.0 5.0
                 , v Abs 27.0
                 , h Abs 24.0
                 , v Abs 5.0
@@ -98,4 +199,20 @@ render _ = do
               , fill $ Just $ RGB 240 240 240
               ]
           ]
-          
+          {-
+          <> (Array.concat $ (\ i -> (\ j -> 
+                let x = 8.0 + toNumber i * 16.0 / 30.0 
+                    y = 5.0 + toNumber j * 22.0 / 30.0
+                    Bi { d0, d1, d2 } = distanceFunction geometry (bix x) (biy y)
+                    f = round $ d0 * 100.0
+                in S.circle [ cx x
+                       , cy y 
+                       , r 0.2
+                       , stroke Nothing
+                       , fill $ Just $ RGB f f f
+                       ]
+                               ) <$> (0 Array... 30) 
+                       ) <$> (0 Array... 30)
+             )
+             -} 
+ 
