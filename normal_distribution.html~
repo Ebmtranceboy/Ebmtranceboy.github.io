@@ -78,8 +78,8 @@
         m = document.querySelector('#m').value;
         s2 = document.querySelector('#s2').value;
         let s = Math.sqrt(s2);
-        a = parseFloat(document.querySelector('#a').value);
-        b = parseFloat(document.querySelector('#b').value);
+        a = document.querySelector('#a').value;
+        b = document.querySelector('#b').value;
         document.querySelector('#answer2').textContent = 
             a<b ? normalDistribution((b-m)/s) 
             -  normalDistribution((a-m)/s) : 0;
